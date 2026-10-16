@@ -137,3 +137,31 @@ curl -X POST https://nodes.kansai.com.ar/webhook/fotos-usados \
 
 Conviene ejecutar el workflow **nodo por nodo** la primera vez (botón *Execute Workflow*)
 para validar credencial de Graph y conexión FTPS.
+
+---
+
+## 5. Variante más nativa
+
+`n8n_webhook_fotos_usados_nativo.json` — misma lógica, pero con la preparación de
+datos, la validación y el ruteo hechos con **nodos nativos** en vez de un Code:
+
+| Parte | Implementación |
+|---|---|
+| Entrada + config + normalización | **Set** (`Preparar`) con expresiones y `$env` |
+| Validación de token/parámetros | **IF** (`$json.valido`) + **Switch** por acción |
+| Descubrimiento en SharePoint | **HTTP Request** (ya era nativo) |
+| Elegir carpeta de patente | **Code** — se mantiene por el *fuzzy* de marca mal escrita |
+| Ubicar WebKai | **Code** — se mantiene por la respuesta limpia de "no encontrado" |
+| Subir / eliminar en FTP | **Code** (`basic-ftp`) — se mantiene por **FTPS** (TLS explícito) |
+
+Se conserva JavaScript **solo donde conviene**: coincidencia aproximada de marca,
+detección de WebKai y el I/O de FTPS (el nodo FTP nativo no soporta TLS explícito).
+La respuesta de validación (`Responder Validacion`) devuelve solo `{ ok, mensaje }`
+para no exponer la config.
+
+> Mismos requisitos que la versión original: credencial de Graph en los 4 nodos
+> HTTP, env vars, y `NODE_FUNCTION_ALLOW_EXTERNAL=basic-ftp`. Si tu hosting
+> ofreciera **SFTP**, los dos Code de FTP podrían reemplazarse por el **nodo FTP
+> nativo en modo SFTP** y quedaría solo 1 Code (el fuzzy).
+
+Las dos versiones son equivalentes en comportamiento; usá la que prefieras mantener.
