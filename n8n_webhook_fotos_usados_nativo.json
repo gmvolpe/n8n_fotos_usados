@@ -6,6 +6,7 @@
         "httpMethod": "POST",
         "path": "fotos-usados",
         "responseMode": "responseNode",
+        "authentication": "headerAuth",
         "options": {}
       },
       "id": "Webhook",
@@ -16,7 +17,13 @@
         -640,
         300
       ],
-      "webhookId": "fotos-usados-webhook-nativo"
+      "webhookId": "fotos-usados-webhook-nativo",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_POR_ID_HEADER_AUTH",
+          "name": "Header Auth Fotos Usados"
+        }
+      }
     },
     {
       "parameters": {
@@ -115,13 +122,13 @@
             {
               "id": "valido",
               "name": "valido",
-              "value": "={{ (() => { const p=(($json.body && $json.body.patente) || ($json.query && $json.query.patente) || '').toString().trim(); const a=(($json.body && $json.body.accion) || ($json.query && $json.query.accion) || '').toString().trim().toLowerCase(); const t=(($json.headers && ($json.headers['x-api-token'] || $json.headers['X-Api-Token'])) || ($json.body && $json.body.token) || ($json.query && $json.query.token) || '').toString(); const e=$env.WEBHOOK_TOKEN||''; return !!p && (a==='subir'||a==='eliminar') && (!e||t===e); })() }}",
+              "value": "={{ (() => { const p=(($json.body && $json.body.patente) || ($json.query && $json.query.patente) || '').toString().trim(); const a=(($json.body && $json.body.accion) || ($json.query && $json.query.accion) || '').toString().trim().toLowerCase(); return !!p && (a==='subir'||a==='eliminar'); })() }}",
               "type": "boolean"
             },
             {
               "id": "mensaje",
               "name": "mensaje",
-              "value": "={{ (() => { const p=(($json.body && $json.body.patente) || ($json.query && $json.query.patente) || '').toString().trim(); const a=(($json.body && $json.body.accion) || ($json.query && $json.query.accion) || '').toString().trim().toLowerCase(); const t=(($json.headers && ($json.headers['x-api-token'] || $json.headers['X-Api-Token'])) || ($json.body && $json.body.token) || ($json.query && $json.query.token) || '').toString(); const e=$env.WEBHOOK_TOKEN||''; if(!p) return 'Falta el parámetro patente/dominio'; if(a!=='subir'&&a!=='eliminar') return \"El parámetro accion debe ser 'subir' o 'eliminar'\"; if(e&&t!==e) return 'No autorizado'; return ''; })() }}",
+              "value": "={{ (() => { const p=(($json.body && $json.body.patente) || ($json.query && $json.query.patente) || '').toString().trim(); const a=(($json.body && $json.body.accion) || ($json.query && $json.query.accion) || '').toString().trim().toLowerCase(); if(!p) return 'Falta el parámetro patente/dominio'; if(a!=='subir'&&a!=='eliminar') return \"El parámetro accion debe ser 'subir' o 'eliminar'\"; return ''; })() }}",
               "type": "string"
             }
           ]

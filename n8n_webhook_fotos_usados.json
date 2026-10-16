@@ -6,6 +6,7 @@
         "httpMethod": "POST",
         "path": "fotos-usados",
         "responseMode": "responseNode",
+        "authentication": "headerAuth",
         "options": {}
       },
       "id": "Webhook",
@@ -16,12 +17,18 @@
         -600,
         300
       ],
-      "webhookId": "fotos-usados-webhook"
+      "webhookId": "fotos-usados-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_POR_ID_HEADER_AUTH",
+          "name": "Header Auth Fotos Usados"
+        }
+      }
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Init: valida token/parámetros, normaliza y arma la config.\nconst inp = $input.first().json || {};\nconst body = (inp.body && typeof inp.body === 'object') ? inp.body : inp;\nconst query = inp.query || {};\nconst headers = inp.headers || {};\n\nconst cfg = {\n  siteHost: 'kansaisa.sharepoint.com',\n  sitePath: '/sites/CentroDeDocumentacion',\n  basePath: 'Kansai/Compartidos/Comercial/Ventas Convencionales/Fotos Usados',\n  webkaiName: 'WebKai',\n  publicBaseUrl: ($env.PUBLIC_BASE_URL || 'http://www.kansai.com.ar/fotos_usados/'),\n  ftp: {\n    host: ($env.FTP_HOST || 'ftp.kansai.com.ar'),\n    port: Number($env.FTP_PORT || 21),\n    user: ($env.FTP_USER || 'u917645178.n8nftpkansai'),\n    password: ($env.FTP_PASSWORD || ''),\n    secure: true,\n    dir: ($env.FTP_DIR || '/home/u917645178/domains/kansai.com.ar/public_html/fotos_usados'),\n  },\n  token: ($env.WEBHOOK_TOKEN || ''),\n};\n\nconst patente = (body.patente ?? query.patente ?? '').toString().trim().toUpperCase().replace(/\\s+/g, '');\nconst marca = (body.marca ?? query.marca ?? '').toString().trim();\nconst accion = (body.accion ?? query.accion ?? '').toString().trim().toLowerCase();\nconst token = (headers['x-api-token'] ?? headers['X-Api-Token'] ?? body.token ?? query.token ?? '').toString();\n\nif (!cfg.publicBaseUrl.endsWith('/')) cfg.publicBaseUrl += '/';\nconst basePathEnc = cfg.basePath.split('/').map(encodeURIComponent).join('/');\n\nlet valid = true;\nlet mensaje = '';\nif (!patente) { valid = false; mensaje = 'Falta el parámetro patente/dominio'; }\nelse if (accion !== 'subir' && accion !== 'eliminar') { valid = false; mensaje = \"El parámetro accion debe ser 'subir' o 'eliminar'\"; }\nelse if (cfg.token && token !== cfg.token) { valid = false; mensaje = 'No autorizado'; }\n\nreturn [{ json: { _valid: valid, ok: valid ? undefined : false, mensaje, accion, patente, marca, cfg, basePathEnc } }];\n"
+        "jsCode": "// Init: valida token/parámetros, normaliza y arma la config.\nconst inp = $input.first().json || {};\nconst body = (inp.body && typeof inp.body === 'object') ? inp.body : inp;\nconst query = inp.query || {};\nconst headers = inp.headers || {};\n\nconst cfg = {\n  siteHost: 'kansaisa.sharepoint.com',\n  sitePath: '/sites/CentroDeDocumentacion',\n  basePath: 'Kansai/Compartidos/Comercial/Ventas Convencionales/Fotos Usados',\n  webkaiName: 'WebKai',\n  publicBaseUrl: ($env.PUBLIC_BASE_URL || 'http://www.kansai.com.ar/fotos_usados/'),\n  ftp: {\n    host: ($env.FTP_HOST || 'ftp.kansai.com.ar'),\n    port: Number($env.FTP_PORT || 21),\n    user: ($env.FTP_USER || 'u917645178.n8nftpkansai'),\n    password: ($env.FTP_PASSWORD || ''),\n    secure: true,\n    dir: ($env.FTP_DIR || '/home/u917645178/domains/kansai.com.ar/public_html/fotos_usados'),\n  },\n};\n\n// La autenticación (token) la resuelve el nodo Webhook con Header Auth, antes de entrar acá.\nconst patente = (body.patente ?? query.patente ?? '').toString().trim().toUpperCase().replace(/\\s+/g, '');\nconst marca = (body.marca ?? query.marca ?? '').toString().trim();\nconst accion = (body.accion ?? query.accion ?? '').toString().trim().toLowerCase();\n\nif (!cfg.publicBaseUrl.endsWith('/')) cfg.publicBaseUrl += '/';\nconst basePathEnc = cfg.basePath.split('/').map(encodeURIComponent).join('/');\n\nlet valid = true;\nlet mensaje = '';\nif (!patente) { valid = false; mensaje = 'Falta el parámetro patente/dominio'; }\nelse if (accion !== 'subir' && accion !== 'eliminar') { valid = false; mensaje = \"El parámetro accion debe ser 'subir' o 'eliminar'\"; }\n\nreturn [{ json: { _valid: valid, ok: valid ? undefined : false, mensaje, accion, patente, marca, cfg, basePathEnc } }];\n"
       },
       "id": "Init",
       "name": "Init",

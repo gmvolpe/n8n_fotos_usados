@@ -31,7 +31,20 @@ Archivo: `n8n_webhook_fotos_usados.json` — importar en n8n (**Import from File
   { "patente": "AD990UD", "marca": "Toyota", "accion": "subir" }
   ```
   `marca` es opcional. `accion` = `subir` | `eliminar`.
-- Header de seguridad: `x-api-token: <WEBHOOK_TOKEN>`.
+- Seguridad: **Header Auth** en el nodo Webhook (ver abajo). El `.gs` manda
+  `x-api-token: <secreto>`.
+
+### Autenticación del Webhook (Header Auth)
+La validación del token **ya no está en el código**: la hace el nodo **Webhook**
+de forma nativa. Al importar:
+1. **Credentials → New → "Header Auth"**
+   - **Name:** `Header Auth Fotos Usados`
+   - **Header Name:** `x-api-token`
+   - **Header Value:** un secreto que inventes
+2. En el nodo **Webhook** → Authentication → **Header Auth** → elegí esa credencial.
+3. Poné ese mismo secreto en `actualizarFotos.gs` → `AF_CONFIG.WEBHOOK_TOKEN`.
+
+Cualquier llamada sin ese header exacto recibe **403** y no entra al flujo.
 
 ### Credencial de SharePoint
 Los nodos **GraphResolveSite, GraphSearchPatente, GraphListPatenteChildren,
@@ -48,7 +61,6 @@ Los secretos **no** van en el JSON. Definí en el entorno de n8n:
 
 | Variable | Valor |
 |---|---|
-| `WEBHOOK_TOKEN` | token compartido con el `.gs` (inventá uno) |
 | `FTP_HOST` | `ftp.kansai.com.ar` |
 | `FTP_PORT` | `21` |
 | `FTP_USER` | `u917645178.n8nftpkansai` |
@@ -95,7 +107,7 @@ También debe estar permitido el acceso a `$env` en nodos (por defecto lo está:
 
 ### `actualizarFotos.gs` (en el libro ORIGEN "STOCK FISICO")
 Completá en `AF_CONFIG`:
-- `WEBHOOK_TOKEN` = el mismo valor que pusiste en n8n.
+- `WEBHOOK_TOKEN` = el mismo secreto que cargaste en la credencial **Header Auth** del Webhook.
 - El resto ya viene con los valores detectados: hoja `STOCK FISICO`, encabezados en
   la fila 3, columnas por nombre `DOMINIO` / `MARCA` / `FECHA DE RESERVA`, fotos en `Y`.
 
@@ -148,7 +160,8 @@ datos, la validación y el ruteo hechos con **nodos nativos** en vez de un Code:
 | Parte | Implementación |
 |---|---|
 | Entrada + config + normalización | **Set** (`Preparar`) con expresiones y `$env` |
-| Validación de token/parámetros | **IF** (`$json.valido`) + **Switch** por acción |
+| Autenticación (token) | **Header Auth** nativo en el nodo Webhook |
+| Validación de parámetros + ruteo | **IF** (`$json.valido`) + **Switch** por acción |
 | Descubrimiento en SharePoint | **HTTP Request** (ya era nativo) |
 | Elegir carpeta de patente | **Code** — se mantiene por el *fuzzy* de marca mal escrita |
 | Ubicar WebKai | **Code** — se mantiene por la respuesta limpia de "no encontrado" |
