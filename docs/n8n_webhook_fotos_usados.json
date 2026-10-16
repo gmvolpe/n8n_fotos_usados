@@ -1,0 +1,554 @@
+{
+  "name": "Fotos Usados - Sincronización SharePoint -> FTP",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fotos-usados",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        300
+      ],
+      "webhookId": "fotos-usados-webhook"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Init: valida token/parámetros, normaliza y arma la config.\nconst inp = $input.first().json || {};\nconst body = (inp.body && typeof inp.body === 'object') ? inp.body : inp;\nconst query = inp.query || {};\nconst headers = inp.headers || {};\n\nconst cfg = {\n  siteHost: 'kansaisa.sharepoint.com',\n  sitePath: '/sites/CentroDeDocumentacion',\n  basePath: 'Kansai/Compartidos/Comercial/Ventas Convencionales/Fotos Usados',\n  webkaiName: 'WebKai',\n  publicBaseUrl: ($env.PUBLIC_BASE_URL || 'http://www.kansai.com.ar/fotos_usados/'),\n  ftp: {\n    host: ($env.FTP_HOST || 'ftp.kansai.com.ar'),\n    port: Number($env.FTP_PORT || 21),\n    user: ($env.FTP_USER || 'u917645178.n8nftpkansai'),\n    password: ($env.FTP_PASSWORD || ''),\n    secure: true,\n    dir: ($env.FTP_DIR || '/home/u917645178/domains/kansai.com.ar/public_html/fotos_usados'),\n  },\n  token: ($env.WEBHOOK_TOKEN || ''),\n};\n\nconst patente = (body.patente ?? query.patente ?? '').toString().trim().toUpperCase().replace(/\\s+/g, '');\nconst marca = (body.marca ?? query.marca ?? '').toString().trim();\nconst accion = (body.accion ?? query.accion ?? '').toString().trim().toLowerCase();\nconst token = (headers['x-api-token'] ?? headers['X-Api-Token'] ?? body.token ?? query.token ?? '').toString();\n\nif (!cfg.publicBaseUrl.endsWith('/')) cfg.publicBaseUrl += '/';\nconst basePathEnc = cfg.basePath.split('/').map(encodeURIComponent).join('/');\n\nlet valid = true;\nlet mensaje = '';\nif (!patente) { valid = false; mensaje = 'Falta el parámetro patente/dominio'; }\nelse if (accion !== 'subir' && accion !== 'eliminar') { valid = false; mensaje = \"El parámetro accion debe ser 'subir' o 'eliminar'\"; }\nelse if (cfg.token && token !== cfg.token) { valid = false; mensaje = 'No autorizado'; }\n\nreturn [{ json: { _valid: valid, ok: valid ? undefined : false, mensaje, accion, patente, marca, cfg, basePathEnc } }];\n"
+      },
+      "id": "Init",
+      "name": "Init",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "IF Valido-c1",
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "IF Valido",
+      "name": "IF Valido",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "subir",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "subir"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "eliminar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "eliminar"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Switch Accion",
+      "name": "Switch Accion",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        0,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $json.cfg.siteHost }}:{{ $json.cfg.sitePath }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "options": {}
+      },
+      "id": "GraphResolveSite",
+      "name": "GraphResolveSite",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        100
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REEMPLAZAR_POR_ID_DE_CREDENCIAL",
+          "name": "OAuth2 Microsoft Graph (n8n-sharepoint-sync)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').item.json.id }}/drive/root:/{{ $('Init').item.json.basePathEnc }}:/search(q='{{ $('Init').item.json.patente }}')",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "options": {}
+      },
+      "id": "GraphSearchPatente",
+      "name": "GraphSearchPatente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        100
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REEMPLAZAR_POR_ID_DE_CREDENCIAL",
+          "name": "OAuth2 Microsoft Graph (n8n-sharepoint-sync)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// PickPatenteFolder: de los resultados de búsqueda, elige la carpeta de la patente.\nconst res = ($('GraphSearchPatente').item.json.value) || [];\nconst initJson = $('Init').item.json;\nconst patente = initJson.patente;\nconst marca = initJson.marca;\n\nfunction norm(s) {\n  return (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');\n}\nfunction lev(a, b) {\n  const m = a.length, n = b.length;\n  const d = Array.from({ length: m + 1 }, (_, i) => { const row = new Array(n + 1).fill(0); row[0] = i; return row; });\n  for (let j = 0; j <= n; j++) d[0][j] = j;\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));\n    }\n  }\n  return d[m][n];\n}\nfunction fuzzy(a, b) {\n  a = norm(a); b = norm(b);\n  if (!a || !b) return false;\n  if (a === b || a.includes(b) || b.includes(a)) return true;\n  const dist = lev(a, b);\n  return dist <= Math.max(1, Math.floor(Math.max(a.length, b.length) * 0.3));\n}\n\nconst np = norm(patente);\n// Solo carpetas cuyo nombre contiene la patente\nlet folders = res.filter(it => it.folder && norm(it.name).includes(np));\n\nif (marca) {\n  const conMarca = folders.filter(f => {\n    const path = (f.parentReference && f.parentReference.path) || '';\n    const seg = decodeURIComponent(path).split('/').pop(); // carpeta de marca = último segmento del path padre\n    return fuzzy(seg, marca) || fuzzy(path, marca);\n  });\n  if (conMarca.length) folders = conMarca; // si hay match de marca, priorizar; si no, dejar todas\n}\n\nconst chosen = folders[0]; // primera encontrada\nif (!chosen) {\n  return [{ json: { ok: false, accion: 'subir', patente, marca, markdown: '', archivos: [], mensaje: 'No se encontró carpeta con la patente' + (marca ? (' para la marca ' + marca) : '') } }];\n}\nreturn [{ json: { ok: true, folderId: chosen.id, folderName: chosen.name } }];\n"
+      },
+      "id": "PickPatenteFolder",
+      "name": "PickPatenteFolder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "IF Pick-c1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "IF Pick",
+      "name": "IF Pick",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').item.json.id }}/drive/items/{{ $json.folderId }}/children?$top=200",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "options": {}
+      },
+      "id": "GraphListPatenteChildren",
+      "name": "GraphListPatenteChildren",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        60
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REEMPLAZAR_POR_ID_DE_CREDENCIAL",
+          "name": "OAuth2 Microsoft Graph (n8n-sharepoint-sync)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// FindWebKai: dentro de la carpeta de la patente, ubica la subcarpeta WebKai.\nconst children = ($('GraphListPatenteChildren').item.json.value) || [];\nconst initJson = $('Init').item.json;\nconst target = (initJson.cfg.webkaiName || 'WebKai').toLowerCase();\n\nconst wk = children.find(c => c.folder && (c.name || '').trim().toLowerCase() === target)\n  || children.find(c => c.folder && (c.name || '').trim().toLowerCase().includes(target));\n\nif (!wk) {\n  return [{ json: { ok: false, accion: 'subir', patente: initJson.patente, marca: initJson.marca, markdown: '', archivos: [], mensaje: 'No se encontró la carpeta ' + initJson.cfg.webkaiName } }];\n}\nreturn [{ json: { ok: true, webkaiId: wk.id } }];\n"
+      },
+      "id": "FindWebKai",
+      "name": "FindWebKai",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "IF WebKai-c1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "IF WebKai",
+      "name": "IF WebKai",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').item.json.id }}/drive/items/{{ $json.webkaiId }}/children?$top=200",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "options": {}
+      },
+      "id": "GraphListWebKaiFiles",
+      "name": "GraphListWebKaiFiles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        20
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REEMPLAZAR_POR_ID_DE_CREDENCIAL",
+          "name": "OAuth2 Microsoft Graph (n8n-sharepoint-sync)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// FtpSubir: descarga las fotos de WebKai y las sube al FTP renombradas.\nconst ftpLib = require('basic-ftp');\nconst { Readable } = require('stream');\n\nconst initJson = $('Init').item.json;\nconst cfg = initJson.cfg;\nconst patente = initJson.patente;\nconst marca = initJson.marca;\nconst all = ($('GraphListWebKaiFiles').item.json.value) || [];\n\n// Solo archivos (no subcarpetas), ordenados por nombre\nconst files = all\n  .filter(f => f.file)\n  .sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true, sensitivity: 'base' }));\n\nif (files.length === 0) {\n  return [{ json: { ok: false, accion: 'subir', patente, marca, total: 0, archivos: [], markdown: '', mensaje: 'La carpeta WebKai no tiene fotos' } }];\n}\n\nfunction norm(s) { return (s || '').toString().toUpperCase(); }\n\nconst client = new ftpLib.Client(30000);\nclient.ftp.verbose = false;\nconst archivos = [];\nconst markdownLines = [];\n\ntry {\n  await client.access({\n    host: cfg.ftp.host,\n    port: cfg.ftp.port,\n    user: cfg.ftp.user,\n    password: cfg.ftp.password,\n    secure: cfg.ftp.secure,\n    secureOptions: { rejectUnauthorized: false },\n  });\n  await client.ensureDir(cfg.ftp.dir);\n  await client.cd(cfg.ftp.dir);\n\n  // Borrar sobrantes: todo lo que empiece con la patente\n  const existentes = await client.list();\n  for (const e of existentes) {\n    if (e.isFile && norm(e.name).startsWith(patente)) {\n      try { await client.remove(e.name); } catch (err) {}\n    }\n  }\n\n  // Subir renombrando patente_N.ext (conservando extensión original)\n  let i = 0;\n  for (const f of files) {\n    i++;\n    const ext = (f.name.includes('.') ? f.name.split('.').pop() : 'jpg').toLowerCase();\n    const destName = patente + '_' + i + '.' + ext;\n    const url = f['@microsoft.graph.downloadUrl'] || f['@content.downloadUrl'];\n    if (!url) continue;\n    const data = await this.helpers.httpRequest({ url, encoding: 'arraybuffer' });\n    const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);\n    await client.uploadFrom(Readable.from(buf), destName);\n    archivos.push(destName);\n    markdownLines.push('![' + patente + '_' + i + '](' + cfg.publicBaseUrl + destName + ')');\n  }\n} finally {\n  client.close();\n}\n\nif (archivos.length === 0) {\n  return [{ json: { ok: false, accion: 'subir', patente, marca, total: 0, archivos: [], markdown: '', mensaje: 'No se pudo subir ninguna foto' } }];\n}\n\nreturn [{ json: { ok: true, accion: 'subir', patente, marca, total: archivos.length, archivos, markdown: markdownLines.join('\\n') } }];\n"
+      },
+      "id": "FtpSubir",
+      "name": "FtpSubir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// FtpEliminar: borra del FTP todos los archivos que empiecen con la patente.\nconst ftpLib = require('basic-ftp');\n\nconst initJson = $('Init').item.json;\nconst cfg = initJson.cfg;\nconst patente = initJson.patente;\n\nfunction norm(s) { return (s || '').toString().toUpperCase(); }\n\nconst client = new ftpLib.Client(30000);\nclient.ftp.verbose = false;\nconst eliminados = [];\n\ntry {\n  await client.access({\n    host: cfg.ftp.host,\n    port: cfg.ftp.port,\n    user: cfg.ftp.user,\n    password: cfg.ftp.password,\n    secure: cfg.ftp.secure,\n    secureOptions: { rejectUnauthorized: false },\n  });\n  await client.cd(cfg.ftp.dir);\n\n  const existentes = await client.list();\n  for (const e of existentes) {\n    if (e.isFile && norm(e.name).startsWith(patente)) {\n      try { await client.remove(e.name); eliminados.push(e.name); } catch (err) {}\n    }\n  }\n} finally {\n  client.close();\n}\n\nconst mensaje = eliminados.length\n  ? ('Se eliminaron ' + eliminados.length + ' archivo(s) de la patente ' + patente)\n  : 'No había fotos para la patente ' + patente;\n\nreturn [{ json: { ok: true, accion: 'eliminar', patente, total: eliminados.length, eliminados, mensaje } }];\n"
+      },
+      "id": "FtpEliminar",
+      "name": "FtpEliminar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "Responder",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2220,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Init",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init": {
+      "main": [
+        [
+          {
+            "node": "IF Valido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Valido": {
+      "main": [
+        [
+          {
+            "node": "Switch Accion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Accion": {
+      "main": [
+        [
+          {
+            "node": "GraphResolveSite",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FtpEliminar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GraphResolveSite": {
+      "main": [
+        [
+          {
+            "node": "GraphSearchPatente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GraphSearchPatente": {
+      "main": [
+        [
+          {
+            "node": "PickPatenteFolder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PickPatenteFolder": {
+      "main": [
+        [
+          {
+            "node": "IF Pick",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pick": {
+      "main": [
+        [
+          {
+            "node": "GraphListPatenteChildren",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GraphListPatenteChildren": {
+      "main": [
+        [
+          {
+            "node": "FindWebKai",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FindWebKai": {
+      "main": [
+        [
+          {
+            "node": "IF WebKai",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF WebKai": {
+      "main": [
+        [
+          {
+            "node": "GraphListWebKaiFiles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GraphListWebKaiFiles": {
+      "main": [
+        [
+          {
+            "node": "FtpSubir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FtpSubir": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FtpEliminar": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
