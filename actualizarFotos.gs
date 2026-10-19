@@ -69,19 +69,30 @@ function actualizarFotos() {
 
   Logger.log('Columnas -> DOMINIO:' + colDominio + ' MARCA:' + colMarca + ' RESERVA:' + colReserva + ' FOTOS:' + colFotos);
 
-  // 2. Leer el bloque de datos
-  const numFilas = cfg.FILA_FIN - cfg.FILA_INICIO + 1;
+  // 2. Leer el bloque de datos, acotado a las filas realmente usadas.
+  //    FILA_FIN actúa solo como tope de seguridad: si la hoja tiene menos filas,
+  //    manda getLastRow() (y así getRange nunca se pasa de la grilla).
+  const filaFin = Math.min(cfg.FILA_FIN, hoja.getLastRow());
+  if (filaFin < cfg.FILA_INICIO) {
+    Logger.log('No hay filas de datos a partir de la fila ' + cfg.FILA_INICIO + '. Nada que hacer.');
+    return;
+  }
+
+  const numFilas = filaFin - cfg.FILA_INICIO + 1;
   const anchoLectura = Math.max(colDominio, colMarca, colReserva, colFotos);
   const datos = hoja.getRange(cfg.FILA_INICIO, 1, numFilas, anchoLectura).getValues();
 
-  let subidos = 0, eliminados = 0, sinFotos = 0, errores = 0;
+  Logger.log('Revisando filas ' + cfg.FILA_INICIO + ' a ' + filaFin + ' (' + numFilas + ' filas).');
+
+  let subidos = 0, eliminados = 0, sinFotos = 0, errores = 0, conDominio = 0;
 
   for (let i = 0; i < datos.length; i++) {
     const fila = datos[i];
     const filaReal = cfg.FILA_INICIO + i;
 
     const dominio = (fila[colDominio - 1] || '').toString().trim();
-    if (!dominio) continue;
+    if (!dominio) continue;   // fila en blanco: se ignora
+    conDominio++;
 
     const marca = colMarca ? (fila[colMarca - 1] || '').toString().trim() : '';
     const reserva = fila[colReserva - 1];
@@ -117,8 +128,8 @@ function actualizarFotos() {
     }
   }
 
-  Logger.log('actualizarFotos: ' + subidos + ' subidas, ' + sinFotos + ' sin fotos, ' +
-             eliminados + ' eliminaciones, ' + errores + ' errores.');
+  Logger.log('actualizarFotos: ' + conDominio + ' filas con DOMINIO | ' + subidos + ' subidas, ' +
+             sinFotos + ' sin fotos, ' + eliminados + ' eliminaciones, ' + errores + ' errores.');
   if (errores) {
     Logger.log('Hubo errores de comunicación con n8n. Revisá que el workflow esté ACTIVE ' +
                '(la URL /webhook/ solo responde si lo está) y que el token coincida.');
