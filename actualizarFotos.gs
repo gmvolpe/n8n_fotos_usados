@@ -31,9 +31,10 @@ const AF_CONFIG = {
   ENC_FOTOS: 'FOTOS',                   // si no existe ese encabezado, usa COL_FOTOS_FALLBACK
   COL_FOTOS_FALLBACK: 25,               // columna Y (25) si no hay encabezado "FOTOS"
 
-  // Webhook n8n
+   // Webhook n8n
   WEBHOOK_URL: 'https://nodes.kansai.com.ar/webhook/fotos-usados',
-  WEBHOOK_TOKEN: 'CARGAR_TOKEN',        // debe coincidir con WEBHOOK_TOKEN en n8n
+  //WEBHOOK_URL: 'https://nodes.kansai.com.ar/webhook-test/fotos-usados',
+  WEBHOOK_TOKEN: '3240c2c23c004e30b5aa18b1d781e382a6c6d17d75ed4efd869c73fca103e24c',        // debe coincidir con WEBHOOK_TOKEN en n8n
 };
 // =======================================================
 
