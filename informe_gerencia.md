@@ -41,6 +41,8 @@ Esto traía tres problemas recurrentes:
 
 ## Cómo funciona el circuito
 
+![Circuito de publicación de fotos: de la planilla al sitio web](circuito_fotos_usados.svg)
+
 **Circuito, paso a paso:**
 
 1. **Planilla de stock** — Comercial carga el dominio, la marca y la fecha de reserva.
