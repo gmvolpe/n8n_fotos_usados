@@ -70,11 +70,7 @@ Password:  <la contraseña del FTP>
 > documentada de Hostinger (ver `configuracion_cliente_ftp_hostinger.md`). El nodo FTP
 > nativo de n8n **no soporta FTPS** (TLS explícito); por eso se usa FTP plano, que es
 > lo que habilita usar una credencial administrable por el usuario.
->
-> Tu FileZilla está configurado con "FTP explícito sobre TLS". Si al probar el server
-> **rechaza FTP plano**, avisame: habría que volver a resolver el FTP con un nodo Code
-> (`basic-ftp`), con la contrapartida de que las credenciales ya no podrían salir del
-> store de n8n.
+> **Probado y funcionando** contra el servidor (listar, borrar y subir).
 
 ### Sin directorio
 La cuenta `u917645178.n8nftpkansai` es una **cuenta FTP adicional restringida**, así que
@@ -107,6 +103,17 @@ patente** → descarga cada foto y la sube → devuelve el markdown.
 
 > Las fotos se toman **exclusivamente** de `WebKai` (son las de tamaño adecuado). Si esa
 > carpeta no existe, responde `ok:false` y no sube nada.
+
+### Nota de mantenimiento: paired item
+
+El **nodo FTP no propaga la metadata de *paired item***, así que cualquier referencia
+`$('Nodo').item` ubicada **después** de un nodo FTP falla con
+*"Paired item data for item from node X is unavailable"*.
+
+Por eso los Code nodes usan **`$('Nodo').first().json`** para los nodos de un solo ítem
+(`Preparar`, las respuestas de Graph). La única excepción es el campo *Path* de
+**`SubirFoto`**, que usa `$('RetomarArchivos').item.json.rutaDestino` porque **necesita**
+la correspondencia uno a uno entre cada foto descargada y su nombre destino.
 
 ---
 

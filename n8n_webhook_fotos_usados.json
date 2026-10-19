@@ -239,7 +239,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').item.json.id }}/drive/root:/{{ $('Preparar').item.json.basePathEnc }}:/search(q='{{ $('Preparar').item.json.patente }}')",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').first().json.id }}/drive/root:/{{ $('Preparar').first().json.basePathEnc }}:/search(q='{{ $('Preparar').first().json.patente }}')",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "microsoftOAuth2Api",
         "options": {}
@@ -262,7 +262,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// PickPatenteFolder (variante nativa): elige la carpeta de la patente. JS por el fuzzy de marca.\nconst res = ($('GraphSearchPatente').item.json.value) || [];\nconst P = $('Preparar').item.json;\nconst patente = P.patente;\nconst marca = P.marca;\n\nfunction norm(s) {\n  return (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');\n}\nfunction lev(a, b) {\n  const m = a.length, n = b.length;\n  const d = Array.from({ length: m + 1 }, (_, i) => { const row = new Array(n + 1).fill(0); row[0] = i; return row; });\n  for (let j = 0; j <= n; j++) d[0][j] = j;\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));\n    }\n  }\n  return d[m][n];\n}\nfunction fuzzy(a, b) {\n  a = norm(a); b = norm(b);\n  if (!a || !b) return false;\n  if (a === b || a.includes(b) || b.includes(a)) return true;\n  const dist = lev(a, b);\n  return dist <= Math.max(1, Math.floor(Math.max(a.length, b.length) * 0.3));\n}\n\nconst np = norm(patente);\nlet folders = res.filter(it => it.folder && norm(it.name).includes(np));\n\nif (marca) {\n  const conMarca = folders.filter(f => {\n    const path = (f.parentReference && f.parentReference.path) || '';\n    const seg = decodeURIComponent(path).split('/').pop();\n    return fuzzy(seg, marca) || fuzzy(path, marca);\n  });\n  if (conMarca.length) folders = conMarca;\n}\n\nconst chosen = folders[0];\nif (!chosen) {\n  return [{ json: { ok: false, accion: 'subir', patente, marca, markdown: '', archivos: [], mensaje: 'No se encontró carpeta con la patente' + (marca ? (' para la marca ' + marca) : '') } }];\n}\nreturn [{ json: { ok: true, folderId: chosen.id, folderName: chosen.name } }];\n"
+        "jsCode": "// PickPatenteFolder (variante nativa): elige la carpeta de la patente. JS por el fuzzy de marca.\nconst res = ($('GraphSearchPatente').first().json.value) || [];\nconst P = $('Preparar').first().json;\nconst patente = P.patente;\nconst marca = P.marca;\n\nfunction norm(s) {\n  return (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');\n}\nfunction lev(a, b) {\n  const m = a.length, n = b.length;\n  const d = Array.from({ length: m + 1 }, (_, i) => { const row = new Array(n + 1).fill(0); row[0] = i; return row; });\n  for (let j = 0; j <= n; j++) d[0][j] = j;\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));\n    }\n  }\n  return d[m][n];\n}\nfunction fuzzy(a, b) {\n  a = norm(a); b = norm(b);\n  if (!a || !b) return false;\n  if (a === b || a.includes(b) || b.includes(a)) return true;\n  const dist = lev(a, b);\n  return dist <= Math.max(1, Math.floor(Math.max(a.length, b.length) * 0.3));\n}\n\nconst np = norm(patente);\nlet folders = res.filter(it => it.folder && norm(it.name).includes(np));\n\nif (marca) {\n  const conMarca = folders.filter(f => {\n    const path = (f.parentReference && f.parentReference.path) || '';\n    const seg = decodeURIComponent(path).split('/').pop();\n    return fuzzy(seg, marca) || fuzzy(path, marca);\n  });\n  if (conMarca.length) folders = conMarca;\n}\n\nconst chosen = folders[0];\nif (!chosen) {\n  return [{ json: { ok: false, accion: 'subir', patente, marca, markdown: '', archivos: [], mensaje: 'No se encontró carpeta con la patente' + (marca ? (' para la marca ' + marca) : '') } }];\n}\nreturn [{ json: { ok: true, folderId: chosen.id, folderName: chosen.name } }];\n"
       },
       "id": "PickPatenteFolder",
       "name": "PickPatenteFolder",
@@ -310,7 +310,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').item.json.id }}/drive/items/{{ $json.folderId }}/children?$top=200",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').first().json.id }}/drive/items/{{ $json.folderId }}/children?$top=200",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "microsoftOAuth2Api",
         "options": {}
@@ -333,7 +333,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// FindWebKai (variante nativa): ubica la subcarpeta WebKai. JS por la respuesta limpia de \"no encontrado\".\nconst children = ($('GraphListPatenteChildren').item.json.value) || [];\nconst P = $('Preparar').item.json;\nconst target = (P.webkaiName || 'WebKai').toLowerCase();\n\nconst wk = children.find(c => c.folder && (c.name || '').trim().toLowerCase() === target)\n  || children.find(c => c.folder && (c.name || '').trim().toLowerCase().includes(target));\n\nif (!wk) {\n  return [{ json: { ok: false, accion: 'subir', patente: P.patente, marca: P.marca, markdown: '', archivos: [], mensaje: 'No se encontró la carpeta ' + P.webkaiName } }];\n}\nreturn [{ json: { ok: true, webkaiId: wk.id } }];\n"
+        "jsCode": "// FindWebKai (variante nativa): ubica la subcarpeta WebKai. JS por la respuesta limpia de \"no encontrado\".\nconst children = ($('GraphListPatenteChildren').first().json.value) || [];\nconst P = $('Preparar').first().json;\nconst target = (P.webkaiName || 'WebKai').toLowerCase();\n\nconst wk = children.find(c => c.folder && (c.name || '').trim().toLowerCase() === target)\n  || children.find(c => c.folder && (c.name || '').trim().toLowerCase().includes(target));\n\nif (!wk) {\n  return [{ json: { ok: false, accion: 'subir', patente: P.patente, marca: P.marca, markdown: '', archivos: [], mensaje: 'No se encontró la carpeta ' + P.webkaiName } }];\n}\nreturn [{ json: { ok: true, webkaiId: wk.id } }];\n"
       },
       "id": "FindWebKai",
       "name": "FindWebKai",
@@ -381,7 +381,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').item.json.id }}/drive/items/{{ $json.webkaiId }}/children?$top=200",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').first().json.id }}/drive/items/{{ $json.webkaiId }}/children?$top=200",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "microsoftOAuth2Api",
         "options": {}
@@ -404,7 +404,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// PrepararArchivos: ordena las fotos de WebKai y arma el nombre destino patente_N.ext\nconst P = $('Preparar').item.json;\nconst all = ($('GraphListWebKaiFiles').item.json.value) || [];\n\nconst files = all\n  .filter(f => f.file)\n  .sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true, sensitivity: 'base' }));\n\nif (!files.length) {\n  return [{ json: { hayFotos: false, ok: false, accion: 'subir', patente: P.patente, marca: P.marca, total: 0, archivos: [], markdown: '', mensaje: 'La carpeta WebKai no tiene fotos' } }];\n}\n\nconst base = P.ftpPath.endsWith('/') ? P.ftpPath : P.ftpPath + '/';\n\nreturn files.map((f, idx) => {\n  const ext = (f.name.includes('.') ? f.name.split('.').pop() : 'jpg').toLowerCase();\n  const destName = P.patente + '_' + (idx + 1) + '.' + ext;\n  return {\n    json: {\n      hayFotos: true,\n      indice: idx + 1,\n      origen: f.name,\n      destName,\n      rutaDestino: base + destName,\n      downloadUrl: f['@microsoft.graph.downloadUrl'] || f['@content.downloadUrl'] || '',\n    },\n  };\n});\n"
+        "jsCode": "// PrepararArchivos: ordena las fotos de WebKai y arma el nombre destino patente_N.ext\nconst P = $('Preparar').first().json;\nconst all = ($('GraphListWebKaiFiles').first().json.value) || [];\n\nconst files = all\n  .filter(f => f.file)\n  .sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true, sensitivity: 'base' }));\n\nif (!files.length) {\n  return [{ json: { hayFotos: false, ok: false, accion: 'subir', patente: P.patente, marca: P.marca, total: 0, archivos: [], markdown: '', mensaje: 'La carpeta WebKai no tiene fotos' } }];\n}\n\nconst base = P.ftpPath.endsWith('/') ? P.ftpPath : P.ftpPath + '/';\n\nreturn files.map((f, idx) => {\n  const ext = (f.name.includes('.') ? f.name.split('.').pop() : 'jpg').toLowerCase();\n  const destName = P.patente + '_' + (idx + 1) + '.' + ext;\n  return {\n    json: {\n      hayFotos: true,\n      indice: idx + 1,\n      origen: f.name,\n      destName,\n      rutaDestino: base + destName,\n      downloadUrl: f['@microsoft.graph.downloadUrl'] || f['@content.downloadUrl'] || '',\n    },\n  };\n});\n"
       },
       "id": "PrepararArchivos",
       "name": "PrepararArchivos",
@@ -453,7 +453,7 @@
       "parameters": {
         "protocol": "ftp",
         "operation": "list",
-        "path": "={{ $('Preparar').item.json.ftpPath }}"
+        "path": "={{ $('Preparar').first().json.ftpPath }}"
       },
       "id": "ListarPrevio",
       "name": "ListarPrevio",
@@ -473,7 +473,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Filtra, del listado del FTP, los archivos que empiezan con la patente.\n// Siempre devuelve al menos 1 item (con hay:false) para que el flujo no se corte.\nconst P = $('Preparar').item.json;\nconst patente = P.patente;\nconst ftpPath = P.ftpPath || '/';\nconst base = ftpPath.endsWith('/') ? ftpPath : ftpPath + '/';\n\nconst entradas = $input.all().map(i => i.json).filter(Boolean);\n\nfunction esDirectorio(e) {\n  if (e.isDirectory === true) return true;\n  const t = e.type;\n  return t === 'd' || t === 2 || t === 'directory';\n}\n\nconst match = entradas.filter(e => e.name && !esDirectorio(e) && e.name.toUpperCase().startsWith(patente));\n\nif (!match.length) return [{ json: { hay: false } }];\n\nreturn match.map(e => ({ json: { hay: true, name: e.name, rutaBorrar: base + e.name } }));\n"
+        "jsCode": "// Filtra, del listado del FTP, los archivos que empiezan con la patente.\n// Siempre devuelve al menos 1 item (con hay:false) para que el flujo no se corte.\nconst P = $('Preparar').first().json;\nconst patente = P.patente;\nconst ftpPath = P.ftpPath || '/';\nconst base = ftpPath.endsWith('/') ? ftpPath : ftpPath + '/';\n\nconst entradas = $input.all().map(i => i.json).filter(Boolean);\n\nfunction esDirectorio(e) {\n  if (e.isDirectory === true) return true;\n  const t = e.type;\n  return t === 'd' || t === 2 || t === 'directory';\n}\n\nconst match = entradas.filter(e => e.name && !esDirectorio(e) && e.name.toUpperCase().startsWith(patente));\n\nif (!match.length) return [{ json: { hay: false } }];\n\nreturn match.map(e => ({ json: { hay: true, name: e.name, rutaBorrar: base + e.name } }));\n"
       },
       "id": "FiltrarPrevio",
       "name": "FiltrarPrevio",
@@ -604,7 +604,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Arma la respuesta final de 'subir' con la lista en markdown.\nconst P = $('Preparar').item.json;\nconst items = $('RetomarArchivos').all().map(i => i.json);\n\nconst archivos = items.map(i => i.destName);\nconst markdown = items\n  .map(i => '![' + i.destName.replace(/\\.[^.]+$/, '') + '](' + P.publicBaseUrl + i.destName + ')')\n  .join('\\n');\n\nreturn [{ json: { ok: true, accion: 'subir', patente: P.patente, marca: P.marca, total: archivos.length, archivos, markdown } }];\n"
+        "jsCode": "// Arma la respuesta final de 'subir' con la lista en markdown.\nconst P = $('Preparar').first().json;\nconst items = $('RetomarArchivos').all().map(i => i.json);\n\nconst archivos = items.map(i => i.destName);\nconst markdown = items\n  .map(i => '![' + i.destName.replace(/\\.[^.]+$/, '') + '](' + P.publicBaseUrl + i.destName + ')')\n  .join('\\n');\n\nreturn [{ json: { ok: true, accion: 'subir', patente: P.patente, marca: P.marca, total: archivos.length, archivos, markdown } }];\n"
       },
       "id": "ResumenSubir",
       "name": "ResumenSubir",
@@ -619,7 +619,7 @@
       "parameters": {
         "protocol": "ftp",
         "operation": "list",
-        "path": "={{ $('Preparar').item.json.ftpPath }}"
+        "path": "={{ $('Preparar').first().json.ftpPath }}"
       },
       "id": "ListarEliminar",
       "name": "ListarEliminar",
@@ -639,7 +639,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Filtra, del listado del FTP, los archivos que empiezan con la patente.\n// Siempre devuelve al menos 1 item (con hay:false) para que el flujo no se corte.\nconst P = $('Preparar').item.json;\nconst patente = P.patente;\nconst ftpPath = P.ftpPath || '/';\nconst base = ftpPath.endsWith('/') ? ftpPath : ftpPath + '/';\n\nconst entradas = $input.all().map(i => i.json).filter(Boolean);\n\nfunction esDirectorio(e) {\n  if (e.isDirectory === true) return true;\n  const t = e.type;\n  return t === 'd' || t === 2 || t === 'directory';\n}\n\nconst match = entradas.filter(e => e.name && !esDirectorio(e) && e.name.toUpperCase().startsWith(patente));\n\nif (!match.length) return [{ json: { hay: false } }];\n\nreturn match.map(e => ({ json: { hay: true, name: e.name, rutaBorrar: base + e.name } }));\n"
+        "jsCode": "// Filtra, del listado del FTP, los archivos que empiezan con la patente.\n// Siempre devuelve al menos 1 item (con hay:false) para que el flujo no se corte.\nconst P = $('Preparar').first().json;\nconst patente = P.patente;\nconst ftpPath = P.ftpPath || '/';\nconst base = ftpPath.endsWith('/') ? ftpPath : ftpPath + '/';\n\nconst entradas = $input.all().map(i => i.json).filter(Boolean);\n\nfunction esDirectorio(e) {\n  if (e.isDirectory === true) return true;\n  const t = e.type;\n  return t === 'd' || t === 2 || t === 'directory';\n}\n\nconst match = entradas.filter(e => e.name && !esDirectorio(e) && e.name.toUpperCase().startsWith(patente));\n\nif (!match.length) return [{ json: { hay: false } }];\n\nreturn match.map(e => ({ json: { hay: true, name: e.name, rutaBorrar: base + e.name } }));\n"
       },
       "id": "FiltrarEliminar",
       "name": "FiltrarEliminar",
@@ -710,7 +710,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Arma la respuesta final de 'eliminar'.\nconst P = $('Preparar').item.json;\nconst borrados = $('FiltrarEliminar').all().map(i => i.json.name).filter(Boolean);\n\nreturn [{ json: { ok: true, accion: 'eliminar', patente: P.patente, total: borrados.length, eliminados: borrados, mensaje: 'Se eliminaron ' + borrados.length + ' archivo(s) de la patente ' + P.patente } }];\n"
+        "jsCode": "// Arma la respuesta final de 'eliminar'.\nconst P = $('Preparar').first().json;\nconst borrados = $('FiltrarEliminar').all().map(i => i.json.name).filter(Boolean);\n\nreturn [{ json: { ok: true, accion: 'eliminar', patente: P.patente, total: borrados.length, eliminados: borrados, mensaje: 'Se eliminaron ' + borrados.length + ' archivo(s) de la patente ' + P.patente } }];\n"
       },
       "id": "ResumenEliminar",
       "name": "ResumenEliminar",
@@ -724,7 +724,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Respuesta de 'eliminar' cuando no había archivos de esa patente.\nconst P = $('Preparar').item.json;\nreturn [{ json: { ok: true, accion: 'eliminar', patente: P.patente, total: 0, eliminados: [], mensaje: 'No había fotos para la patente ' + P.patente } }];\n"
+        "jsCode": "// Respuesta de 'eliminar' cuando no había archivos de esa patente.\nconst P = $('Preparar').first().json;\nreturn [{ json: { ok: true, accion: 'eliminar', patente: P.patente, total: 0, eliminados: [], mensaje: 'No había fotos para la patente ' + P.patente } }];\n"
       },
       "id": "SinArchivos",
       "name": "SinArchivos",
