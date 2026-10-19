@@ -1,5 +1,5 @@
 {
-  "name": "Fotos Usados - Sincronización SharePoint -> FTP",
+  "name": "Fotos Usados - Sincronizacion SharePoint -> FTP",
   "nodes": [
     {
       "parameters": {
@@ -14,7 +14,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -600,
+        -900,
         300
       ],
       "webhookId": "fotos-usados-webhook",
@@ -27,15 +27,91 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Init: valida token/parámetros, normaliza y arma la config.\nconst inp = $input.first().json || {};\nconst body = (inp.body && typeof inp.body === 'object') ? inp.body : inp;\nconst query = inp.query || {};\nconst headers = inp.headers || {};\n\nconst cfg = {\n  siteHost: 'kansaisa.sharepoint.com',\n  sitePath: '/sites/CentroDeDocumentacion',\n  basePath: 'Kansai/Compartidos/Comercial/Ventas Convencionales/Fotos Usados',\n  webkaiName: 'WebKai',\n  publicBaseUrl: ($env.PUBLIC_BASE_URL || 'http://www.kansai.com.ar/fotos_usados/'),\n  ftp: {\n    host: ($env.FTP_HOST || 'ftp.kansai.com.ar'),\n    port: Number($env.FTP_PORT || 21),\n    user: ($env.FTP_USER || 'u917645178.n8nftpkansai'),\n    password: ($env.FTP_PASSWORD || ''),\n    secure: true,\n    dir: ($env.FTP_DIR || '/home/u917645178/domains/kansai.com.ar/public_html/fotos_usados'),\n  },\n};\n\n// La autenticación (token) la resuelve el nodo Webhook con Header Auth, antes de entrar acá.\nconst patente = (body.patente ?? query.patente ?? '').toString().trim().toUpperCase().replace(/\\s+/g, '');\nconst marca = (body.marca ?? query.marca ?? '').toString().trim();\nconst accion = (body.accion ?? query.accion ?? '').toString().trim().toLowerCase();\n\nif (!cfg.publicBaseUrl.endsWith('/')) cfg.publicBaseUrl += '/';\nconst basePathEnc = cfg.basePath.split('/').map(encodeURIComponent).join('/');\n\nlet valid = true;\nlet mensaje = '';\nif (!patente) { valid = false; mensaje = 'Falta el parámetro patente/dominio'; }\nelse if (accion !== 'subir' && accion !== 'eliminar') { valid = false; mensaje = \"El parámetro accion debe ser 'subir' o 'eliminar'\"; }\n\nreturn [{ json: { _valid: valid, ok: valid ? undefined : false, mensaje, accion, patente, marca, cfg, basePathEnc } }];\n"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "siteHost",
+              "name": "siteHost",
+              "value": "kansaisa.sharepoint.com",
+              "type": "string"
+            },
+            {
+              "id": "sitePath",
+              "name": "sitePath",
+              "value": "/sites/CentroDeDocumentacion",
+              "type": "string"
+            },
+            {
+              "id": "basePath",
+              "name": "basePath",
+              "value": "Kansai/Compartidos/Comercial/Ventas Convencionales/Fotos Usados",
+              "type": "string"
+            },
+            {
+              "id": "basePathEnc",
+              "name": "basePathEnc",
+              "value": "={{ 'Kansai/Compartidos/Comercial/Ventas Convencionales/Fotos Usados'.split('/').map(s => encodeURIComponent(s)).join('/') }}",
+              "type": "string"
+            },
+            {
+              "id": "webkaiName",
+              "name": "webkaiName",
+              "value": "WebKai",
+              "type": "string"
+            },
+            {
+              "id": "publicBaseUrl",
+              "name": "publicBaseUrl",
+              "value": "http://www.kansai.com.ar/fotos_usados/",
+              "type": "string"
+            },
+            {
+              "id": "ftpPath",
+              "name": "ftpPath",
+              "value": "/",
+              "type": "string"
+            },
+            {
+              "id": "patente",
+              "name": "patente",
+              "value": "={{ (($json.body && $json.body.patente) || ($json.query && $json.query.patente) || '').toString().trim().toUpperCase().split(' ').join('') }}",
+              "type": "string"
+            },
+            {
+              "id": "marca",
+              "name": "marca",
+              "value": "={{ (($json.body && $json.body.marca) || ($json.query && $json.query.marca) || '').toString().trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "accion",
+              "name": "accion",
+              "value": "={{ (($json.body && $json.body.accion) || ($json.query && $json.query.accion) || '').toString().trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "valido",
+              "name": "valido",
+              "value": "={{ (() => { const p=(($json.body && $json.body.patente) || ($json.query && $json.query.patente) || '').toString().trim(); const a=(($json.body && $json.body.accion) || ($json.query && $json.query.accion) || '').toString().trim().toLowerCase(); return !!p && (a==='subir'||a==='eliminar'); })() }}",
+              "type": "boolean"
+            },
+            {
+              "id": "mensaje",
+              "name": "mensaje",
+              "value": "={{ (() => { const p=(($json.body && $json.body.patente) || ($json.query && $json.query.patente) || '').toString().trim(); const a=(($json.body && $json.body.accion) || ($json.query && $json.query.accion) || '').toString().trim().toLowerCase(); if(!p) return 'Falta el parametro patente/dominio'; if(a!=='subir'&&a!=='eliminar') return 'El parametro accion debe ser subir o eliminar'; return ''; })() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
       },
-      "id": "Init",
-      "name": "Init",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "Preparar",
+      "name": "Preparar",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
-        -400,
+        -700,
         300
       ]
     },
@@ -51,7 +127,7 @@
           "conditions": [
             {
               "id": "IF Valido-c1",
-              "leftValue": "={{ $json._valid }}",
+              "leftValue": "={{ $json.valido }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -69,7 +145,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -200,
+        -500,
         300
       ]
     },
@@ -133,14 +209,14 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        0,
+        -300,
         220
       ]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $json.cfg.siteHost }}:{{ $json.cfg.sitePath }}",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $json.siteHost }}:{{ $json.sitePath }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "microsoftOAuth2Api",
         "options": {}
@@ -150,12 +226,12 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        220,
-        100
+        -100,
+        80
       ],
       "credentials": {
         "microsoftOAuth2Api": {
-          "id": "REEMPLAZAR_POR_ID_DE_CREDENCIAL",
+          "id": "REEMPLAZAR_POR_ID_GRAPH",
           "name": "OAuth2 Microsoft Graph (n8n-sharepoint-sync)"
         }
       }
@@ -163,7 +239,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').item.json.id }}/drive/root:/{{ $('Init').item.json.basePathEnc }}:/search(q='{{ $('Init').item.json.patente }}')",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{ $('GraphResolveSite').item.json.id }}/drive/root:/{{ $('Preparar').item.json.basePathEnc }}:/search(q='{{ $('Preparar').item.json.patente }}')",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "microsoftOAuth2Api",
         "options": {}
@@ -173,12 +249,12 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        440,
-        100
+        100,
+        80
       ],
       "credentials": {
         "microsoftOAuth2Api": {
-          "id": "REEMPLAZAR_POR_ID_DE_CREDENCIAL",
+          "id": "REEMPLAZAR_POR_ID_GRAPH",
           "name": "OAuth2 Microsoft Graph (n8n-sharepoint-sync)"
         }
       }
@@ -186,15 +262,15 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// PickPatenteFolder: de los resultados de búsqueda, elige la carpeta de la patente.\nconst res = ($('GraphSearchPatente').item.json.value) || [];\nconst initJson = $('Init').item.json;\nconst patente = initJson.patente;\nconst marca = initJson.marca;\n\nfunction norm(s) {\n  return (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');\n}\nfunction lev(a, b) {\n  const m = a.length, n = b.length;\n  const d = Array.from({ length: m + 1 }, (_, i) => { const row = new Array(n + 1).fill(0); row[0] = i; return row; });\n  for (let j = 0; j <= n; j++) d[0][j] = j;\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));\n    }\n  }\n  return d[m][n];\n}\nfunction fuzzy(a, b) {\n  a = norm(a); b = norm(b);\n  if (!a || !b) return false;\n  if (a === b || a.includes(b) || b.includes(a)) return true;\n  const dist = lev(a, b);\n  return dist <= Math.max(1, Math.floor(Math.max(a.length, b.length) * 0.3));\n}\n\nconst np = norm(patente);\n// Solo carpetas cuyo nombre contiene la patente\nlet folders = res.filter(it => it.folder && norm(it.name).includes(np));\n\nif (marca) {\n  const conMarca = folders.filter(f => {\n    const path = (f.parentReference && f.parentReference.path) || '';\n    const seg = decodeURIComponent(path).split('/').pop(); // carpeta de marca = último segmento del path padre\n    return fuzzy(seg, marca) || fuzzy(path, marca);\n  });\n  if (conMarca.length) folders = conMarca; // si hay match de marca, priorizar; si no, dejar todas\n}\n\nconst chosen = folders[0]; // primera encontrada\nif (!chosen) {\n  return [{ json: { ok: false, accion: 'subir', patente, marca, markdown: '', archivos: [], mensaje: 'No se encontró carpeta con la patente' + (marca ? (' para la marca ' + marca) : '') } }];\n}\nreturn [{ json: { ok: true, folderId: chosen.id, folderName: chosen.name } }];\n"
+        "jsCode": "// PickPatenteFolder (variante nativa): elige la carpeta de la patente. JS por el fuzzy de marca.\nconst res = ($('GraphSearchPatente').item.json.value) || [];\nconst P = $('Preparar').item.json;\nconst patente = P.patente;\nconst marca = P.marca;\n\nfunction norm(s) {\n  return (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');\n}\nfunction lev(a, b) {\n  const m = a.length, n = b.length;\n  const d = Array.from({ length: m + 1 }, (_, i) => { const row = new Array(n + 1).fill(0); row[0] = i; return row; });\n  for (let j = 0; j <= n; j++) d[0][j] = j;\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));\n    }\n  }\n  return d[m][n];\n}\nfunction fuzzy(a, b) {\n  a = norm(a); b = norm(b);\n  if (!a || !b) return false;\n  if (a === b || a.includes(b) || b.includes(a)) return true;\n  const dist = lev(a, b);\n  return dist <= Math.max(1, Math.floor(Math.max(a.length, b.length) * 0.3));\n}\n\nconst np = norm(patente);\nlet folders = res.filter(it => it.folder && norm(it.name).includes(np));\n\nif (marca) {\n  const conMarca = folders.filter(f => {\n    const path = (f.parentReference && f.parentReference.path) || '';\n    const seg = decodeURIComponent(path).split('/').pop();\n    return fuzzy(seg, marca) || fuzzy(path, marca);\n  });\n  if (conMarca.length) folders = conMarca;\n}\n\nconst chosen = folders[0];\nif (!chosen) {\n  return [{ json: { ok: false, accion: 'subir', patente, marca, markdown: '', archivos: [], mensaje: 'No se encontró carpeta con la patente' + (marca ? (' para la marca ' + marca) : '') } }];\n}\nreturn [{ json: { ok: true, folderId: chosen.id, folderName: chosen.name } }];\n"
       },
       "id": "PickPatenteFolder",
       "name": "PickPatenteFolder",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        660,
-        100
+        300,
+        80
       ]
     },
     {
@@ -227,8 +303,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        880,
-        100
+        500,
+        80
       ]
     },
     {
@@ -244,12 +320,12 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1100,
-        60
+        700,
+        40
       ],
       "credentials": {
         "microsoftOAuth2Api": {
-          "id": "REEMPLAZAR_POR_ID_DE_CREDENCIAL",
+          "id": "REEMPLAZAR_POR_ID_GRAPH",
           "name": "OAuth2 Microsoft Graph (n8n-sharepoint-sync)"
         }
       }
@@ -257,15 +333,15 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// FindWebKai: dentro de la carpeta de la patente, ubica la subcarpeta WebKai.\nconst children = ($('GraphListPatenteChildren').item.json.value) || [];\nconst initJson = $('Init').item.json;\nconst target = (initJson.cfg.webkaiName || 'WebKai').toLowerCase();\n\nconst wk = children.find(c => c.folder && (c.name || '').trim().toLowerCase() === target)\n  || children.find(c => c.folder && (c.name || '').trim().toLowerCase().includes(target));\n\nif (!wk) {\n  return [{ json: { ok: false, accion: 'subir', patente: initJson.patente, marca: initJson.marca, markdown: '', archivos: [], mensaje: 'No se encontró la carpeta ' + initJson.cfg.webkaiName } }];\n}\nreturn [{ json: { ok: true, webkaiId: wk.id } }];\n"
+        "jsCode": "// FindWebKai (variante nativa): ubica la subcarpeta WebKai. JS por la respuesta limpia de \"no encontrado\".\nconst children = ($('GraphListPatenteChildren').item.json.value) || [];\nconst P = $('Preparar').item.json;\nconst target = (P.webkaiName || 'WebKai').toLowerCase();\n\nconst wk = children.find(c => c.folder && (c.name || '').trim().toLowerCase() === target)\n  || children.find(c => c.folder && (c.name || '').trim().toLowerCase().includes(target));\n\nif (!wk) {\n  return [{ json: { ok: false, accion: 'subir', patente: P.patente, marca: P.marca, markdown: '', archivos: [], mensaje: 'No se encontró la carpeta ' + P.webkaiName } }];\n}\nreturn [{ json: { ok: true, webkaiId: wk.id } }];\n"
       },
       "id": "FindWebKai",
       "name": "FindWebKai",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1320,
-        60
+        900,
+        40
       ]
     },
     {
@@ -298,8 +374,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1540,
-        60
+        1100,
+        40
       ]
     },
     {
@@ -315,12 +391,12 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1760,
-        20
+        1300,
+        0
       ],
       "credentials": {
         "microsoftOAuth2Api": {
-          "id": "REEMPLAZAR_POR_ID_DE_CREDENCIAL",
+          "id": "REEMPLAZAR_POR_ID_GRAPH",
           "name": "OAuth2 Microsoft Graph (n8n-sharepoint-sync)"
         }
       }
@@ -328,29 +404,335 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// FtpSubir: descarga las fotos de WebKai y las sube al FTP renombradas.\nconst ftpLib = require('basic-ftp');\nconst { Readable } = require('stream');\n\nconst initJson = $('Init').item.json;\nconst cfg = initJson.cfg;\nconst patente = initJson.patente;\nconst marca = initJson.marca;\nconst all = ($('GraphListWebKaiFiles').item.json.value) || [];\n\n// Solo archivos (no subcarpetas), ordenados por nombre\nconst files = all\n  .filter(f => f.file)\n  .sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true, sensitivity: 'base' }));\n\nif (files.length === 0) {\n  return [{ json: { ok: false, accion: 'subir', patente, marca, total: 0, archivos: [], markdown: '', mensaje: 'La carpeta WebKai no tiene fotos' } }];\n}\n\nfunction norm(s) { return (s || '').toString().toUpperCase(); }\n\nconst client = new ftpLib.Client(30000);\nclient.ftp.verbose = false;\nconst archivos = [];\nconst markdownLines = [];\n\ntry {\n  await client.access({\n    host: cfg.ftp.host,\n    port: cfg.ftp.port,\n    user: cfg.ftp.user,\n    password: cfg.ftp.password,\n    secure: cfg.ftp.secure,\n    secureOptions: { rejectUnauthorized: false },\n  });\n  await client.ensureDir(cfg.ftp.dir);\n  await client.cd(cfg.ftp.dir);\n\n  // Borrar sobrantes: todo lo que empiece con la patente\n  const existentes = await client.list();\n  for (const e of existentes) {\n    if (e.isFile && norm(e.name).startsWith(patente)) {\n      try { await client.remove(e.name); } catch (err) {}\n    }\n  }\n\n  // Subir renombrando patente_N.ext (conservando extensión original)\n  let i = 0;\n  for (const f of files) {\n    i++;\n    const ext = (f.name.includes('.') ? f.name.split('.').pop() : 'jpg').toLowerCase();\n    const destName = patente + '_' + i + '.' + ext;\n    const url = f['@microsoft.graph.downloadUrl'] || f['@content.downloadUrl'];\n    if (!url) continue;\n    const data = await this.helpers.httpRequest({ url, encoding: 'arraybuffer' });\n    const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);\n    await client.uploadFrom(Readable.from(buf), destName);\n    archivos.push(destName);\n    markdownLines.push('![' + patente + '_' + i + '](' + cfg.publicBaseUrl + destName + ')');\n  }\n} finally {\n  client.close();\n}\n\nif (archivos.length === 0) {\n  return [{ json: { ok: false, accion: 'subir', patente, marca, total: 0, archivos: [], markdown: '', mensaje: 'No se pudo subir ninguna foto' } }];\n}\n\nreturn [{ json: { ok: true, accion: 'subir', patente, marca, total: archivos.length, archivos, markdown: markdownLines.join('\\n') } }];\n"
+        "jsCode": "// PrepararArchivos: ordena las fotos de WebKai y arma el nombre destino patente_N.ext\nconst P = $('Preparar').item.json;\nconst all = ($('GraphListWebKaiFiles').item.json.value) || [];\n\nconst files = all\n  .filter(f => f.file)\n  .sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true, sensitivity: 'base' }));\n\nif (!files.length) {\n  return [{ json: { hayFotos: false, ok: false, accion: 'subir', patente: P.patente, marca: P.marca, total: 0, archivos: [], markdown: '', mensaje: 'La carpeta WebKai no tiene fotos' } }];\n}\n\nconst base = P.ftpPath.endsWith('/') ? P.ftpPath : P.ftpPath + '/';\n\nreturn files.map((f, idx) => {\n  const ext = (f.name.includes('.') ? f.name.split('.').pop() : 'jpg').toLowerCase();\n  const destName = P.patente + '_' + (idx + 1) + '.' + ext;\n  return {\n    json: {\n      hayFotos: true,\n      indice: idx + 1,\n      origen: f.name,\n      destName,\n      rutaDestino: base + destName,\n      downloadUrl: f['@microsoft.graph.downloadUrl'] || f['@content.downloadUrl'] || '',\n    },\n  };\n});\n"
       },
-      "id": "FtpSubir",
-      "name": "FtpSubir",
+      "id": "PrepararArchivos",
+      "name": "PrepararArchivos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1980,
-        20
+        1500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "IF HayFotos-c1",
+              "leftValue": "={{ $json.hayFotos }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "IF HayFotos",
+      "name": "IF HayFotos",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "protocol": "ftp",
+        "operation": "list",
+        "path": "={{ $('Preparar').item.json.ftpPath }}"
+      },
+      "id": "ListarPrevio",
+      "name": "ListarPrevio",
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        1900,
+        -60
+      ],
+      "credentials": {
+        "ftp": {
+          "id": "REEMPLAZAR_POR_ID_FTP",
+          "name": "FTP Kansai fotos_usados"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Filtra, del listado del FTP, los archivos que empiezan con la patente.\n// Siempre devuelve al menos 1 item (con hay:false) para que el flujo no se corte.\nconst P = $('Preparar').item.json;\nconst patente = P.patente;\nconst ftpPath = P.ftpPath || '/';\nconst base = ftpPath.endsWith('/') ? ftpPath : ftpPath + '/';\n\nconst entradas = $input.all().map(i => i.json).filter(Boolean);\n\nfunction esDirectorio(e) {\n  if (e.isDirectory === true) return true;\n  const t = e.type;\n  return t === 'd' || t === 2 || t === 'directory';\n}\n\nconst match = entradas.filter(e => e.name && !esDirectorio(e) && e.name.toUpperCase().startsWith(patente));\n\nif (!match.length) return [{ json: { hay: false } }];\n\nreturn match.map(e => ({ json: { hay: true, name: e.name, rutaBorrar: base + e.name } }));\n"
+      },
+      "id": "FiltrarPrevio",
+      "name": "FiltrarPrevio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "IF HayPrevios-c1",
+              "leftValue": "={{ $json.hay }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "IF HayPrevios",
+      "name": "IF HayPrevios",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2300,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "protocol": "ftp",
+        "operation": "delete",
+        "path": "={{ $json.rutaBorrar }}",
+        "options": {}
+      },
+      "id": "BorrarPrevio",
+      "name": "BorrarPrevio",
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        2500,
+        -140
+      ],
+      "credentials": {
+        "ftp": {
+          "id": "REEMPLAZAR_POR_ID_FTP",
+          "name": "FTP Kansai fotos_usados"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Retoma la lista de fotos a subir después de la limpieza previa en el FTP.\nreturn $('PrepararArchivos').all()\n  .filter(i => i.json.hayFotos && i.json.downloadUrl)\n  .map(i => ({ json: i.json }));\n"
+      },
+      "id": "RetomarArchivos",
+      "name": "RetomarArchivos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2700,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.downloadUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "DescargarFoto",
+      "name": "DescargarFoto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2900,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "protocol": "ftp",
+        "operation": "upload",
+        "path": "={{ $('RetomarArchivos').item.json.rutaDestino }}",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "SubirFoto",
+      "name": "SubirFoto",
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        -60
+      ],
+      "credentials": {
+        "ftp": {
+          "id": "REEMPLAZAR_POR_ID_FTP",
+          "name": "FTP Kansai fotos_usados"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Arma la respuesta final de 'subir' con la lista en markdown.\nconst P = $('Preparar').item.json;\nconst items = $('RetomarArchivos').all().map(i => i.json);\n\nconst archivos = items.map(i => i.destName);\nconst markdown = items\n  .map(i => '![' + i.destName.replace(/\\.[^.]+$/, '') + '](' + P.publicBaseUrl + i.destName + ')')\n  .join('\\n');\n\nreturn [{ json: { ok: true, accion: 'subir', patente: P.patente, marca: P.marca, total: archivos.length, archivos, markdown } }];\n"
+      },
+      "id": "ResumenSubir",
+      "name": "ResumenSubir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "protocol": "ftp",
+        "operation": "list",
+        "path": "={{ $('Preparar').item.json.ftpPath }}"
+      },
+      "id": "ListarEliminar",
+      "name": "ListarEliminar",
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        460
+      ],
+      "credentials": {
+        "ftp": {
+          "id": "REEMPLAZAR_POR_ID_FTP",
+          "name": "FTP Kansai fotos_usados"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Filtra, del listado del FTP, los archivos que empiezan con la patente.\n// Siempre devuelve al menos 1 item (con hay:false) para que el flujo no se corte.\nconst P = $('Preparar').item.json;\nconst patente = P.patente;\nconst ftpPath = P.ftpPath || '/';\nconst base = ftpPath.endsWith('/') ? ftpPath : ftpPath + '/';\n\nconst entradas = $input.all().map(i => i.json).filter(Boolean);\n\nfunction esDirectorio(e) {\n  if (e.isDirectory === true) return true;\n  const t = e.type;\n  return t === 'd' || t === 2 || t === 'directory';\n}\n\nconst match = entradas.filter(e => e.name && !esDirectorio(e) && e.name.toUpperCase().startsWith(patente));\n\nif (!match.length) return [{ json: { hay: false } }];\n\nreturn match.map(e => ({ json: { hay: true, name: e.name, rutaBorrar: base + e.name } }));\n"
+      },
+      "id": "FiltrarEliminar",
+      "name": "FiltrarEliminar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "IF HayEliminar-c1",
+              "leftValue": "={{ $json.hay }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "IF HayEliminar",
+      "name": "IF HayEliminar",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        300,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "protocol": "ftp",
+        "operation": "delete",
+        "path": "={{ $json.rutaBorrar }}",
+        "options": {}
+      },
+      "id": "BorrarEliminar",
+      "name": "BorrarEliminar",
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        500,
+        400
+      ],
+      "credentials": {
+        "ftp": {
+          "id": "REEMPLAZAR_POR_ID_FTP",
+          "name": "FTP Kansai fotos_usados"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Arma la respuesta final de 'eliminar'.\nconst P = $('Preparar').item.json;\nconst borrados = $('FiltrarEliminar').all().map(i => i.json.name).filter(Boolean);\n\nreturn [{ json: { ok: true, accion: 'eliminar', patente: P.patente, total: borrados.length, eliminados: borrados, mensaje: 'Se eliminaron ' + borrados.length + ' archivo(s) de la patente ' + P.patente } }];\n"
+      },
+      "id": "ResumenEliminar",
+      "name": "ResumenEliminar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        400
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// FtpEliminar: borra del FTP todos los archivos que empiecen con la patente.\nconst ftpLib = require('basic-ftp');\n\nconst initJson = $('Init').item.json;\nconst cfg = initJson.cfg;\nconst patente = initJson.patente;\n\nfunction norm(s) { return (s || '').toString().toUpperCase(); }\n\nconst client = new ftpLib.Client(30000);\nclient.ftp.verbose = false;\nconst eliminados = [];\n\ntry {\n  await client.access({\n    host: cfg.ftp.host,\n    port: cfg.ftp.port,\n    user: cfg.ftp.user,\n    password: cfg.ftp.password,\n    secure: cfg.ftp.secure,\n    secureOptions: { rejectUnauthorized: false },\n  });\n  await client.cd(cfg.ftp.dir);\n\n  const existentes = await client.list();\n  for (const e of existentes) {\n    if (e.isFile && norm(e.name).startsWith(patente)) {\n      try { await client.remove(e.name); eliminados.push(e.name); } catch (err) {}\n    }\n  }\n} finally {\n  client.close();\n}\n\nconst mensaje = eliminados.length\n  ? ('Se eliminaron ' + eliminados.length + ' archivo(s) de la patente ' + patente)\n  : 'No había fotos para la patente ' + patente;\n\nreturn [{ json: { ok: true, accion: 'eliminar', patente, total: eliminados.length, eliminados, mensaje } }];\n"
+        "jsCode": "// Respuesta de 'eliminar' cuando no había archivos de esa patente.\nconst P = $('Preparar').item.json;\nreturn [{ json: { ok: true, accion: 'eliminar', patente: P.patente, total: 0, eliminados: [], mensaje: 'No había fotos para la patente ' + P.patente } }];\n"
       },
-      "id": "FtpEliminar",
-      "name": "FtpEliminar",
+      "id": "SinArchivos",
+      "name": "SinArchivos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        220,
-        420
+        500,
+        580
       ]
     },
     {
@@ -364,8 +746,23 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2220,
+        3520,
         300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": false, \"mensaje\": $json.mensaje } }}",
+        "options": {}
+      },
+      "id": "Responder Validacion",
+      "name": "Responder Validacion",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -300,
+        480
       ]
     }
   ],
@@ -374,14 +771,14 @@
       "main": [
         [
           {
-            "node": "Init",
+            "node": "Preparar",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Init": {
+    "Preparar": {
       "main": [
         [
           {
@@ -403,7 +800,7 @@
         ],
         [
           {
-            "node": "Responder",
+            "node": "Responder Validacion",
             "type": "main",
             "index": 0
           }
@@ -421,7 +818,7 @@
         ],
         [
           {
-            "node": "FtpEliminar",
+            "node": "ListarEliminar",
             "type": "main",
             "index": 0
           }
@@ -523,14 +920,127 @@
       "main": [
         [
           {
-            "node": "FtpSubir",
+            "node": "PrepararArchivos",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "FtpSubir": {
+    "PrepararArchivos": {
+      "main": [
+        [
+          {
+            "node": "IF HayFotos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF HayFotos": {
+      "main": [
+        [
+          {
+            "node": "ListarPrevio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ListarPrevio": {
+      "main": [
+        [
+          {
+            "node": "FiltrarPrevio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FiltrarPrevio": {
+      "main": [
+        [
+          {
+            "node": "IF HayPrevios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF HayPrevios": {
+      "main": [
+        [
+          {
+            "node": "BorrarPrevio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RetomarArchivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BorrarPrevio": {
+      "main": [
+        [
+          {
+            "node": "RetomarArchivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RetomarArchivos": {
+      "main": [
+        [
+          {
+            "node": "DescargarFoto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DescargarFoto": {
+      "main": [
+        [
+          {
+            "node": "SubirFoto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SubirFoto": {
+      "main": [
+        [
+          {
+            "node": "ResumenSubir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ResumenSubir": {
       "main": [
         [
           {
@@ -541,7 +1051,69 @@
         ]
       ]
     },
-    "FtpEliminar": {
+    "ListarEliminar": {
+      "main": [
+        [
+          {
+            "node": "FiltrarEliminar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FiltrarEliminar": {
+      "main": [
+        [
+          {
+            "node": "IF HayEliminar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF HayEliminar": {
+      "main": [
+        [
+          {
+            "node": "BorrarEliminar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SinArchivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BorrarEliminar": {
+      "main": [
+        [
+          {
+            "node": "ResumenEliminar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ResumenEliminar": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SinArchivos": {
       "main": [
         [
           {

@@ -8,14 +8,13 @@ de SharePoint y subiéndolas al FTP, controlado desde la planilla de stock.
 ```
 STOCK FISICO (Google Sheet)
   └── actualizarFotos.gs ── POST ──► n8n webhook (nodes.kansai.com.ar)
-                                       ├─ subir:    SharePoint (Graph) → descarga → FTP (FTPS)
+                                       ├─ subir:    SharePoint (Graph) → descarga → FTP
                                        └─ eliminar: borra en FTP
   └── sincronizarCatalogo.gs ──► copia la columna FOTOS (Y) al catálogo destino (col. M)
 ```
 
-- Las fotos quedan **persistidas en la columna Y** del libro origen, así no se re-sube
-  nada al FTP en cada corrida.
-- `sincronizarCatalogo.gs` solo **arrastra** esa columna al destino.
+Las fotos quedan **persistidas en la columna Y** del libro origen, así no se re-sube
+nada al FTP en cada corrida. `sincronizarCatalogo.gs` solo **arrastra** esa columna.
 
 ---
 
@@ -23,68 +22,64 @@ STOCK FISICO (Google Sheet)
 
 Archivo: `n8n_webhook_fotos_usados.json` — importar en n8n (**Import from File**).
 
+**Sin variables de entorno y sin librerías externas.** Toda la configuración está
+fija dentro del nodo **`Preparar`**, y los secretos viven en **credenciales de n8n**
+que administrás desde la UI.
+
 ### Webhook
-- Método **POST**, path `fotos-usados` → URL final: `https://nodes.kansai.com.ar/webhook/fotos-usados`
+- Método **POST**, path `fotos-usados` → `https://nodes.kansai.com.ar/webhook/fotos-usados`
   (en pruebas, n8n expone además `/webhook-test/fotos-usados`).
-- Body JSON esperado:
+- Body JSON:
   ```json
   { "patente": "AD990UD", "marca": "Toyota", "accion": "subir" }
   ```
   `marca` es opcional. `accion` = `subir` | `eliminar`.
-- Seguridad: **Header Auth** en el nodo Webhook (ver abajo). El `.gs` manda
-  `x-api-token: <secreto>`.
 
-### Autenticación del Webhook (Header Auth)
-La validación del token **ya no está en el código**: la hace el nodo **Webhook**
-de forma nativa. Al importar:
-1. **Credentials → New → "Header Auth"**
-   - **Name:** `Header Auth Fotos Usados`
-   - **Header Name:** `x-api-token`
-   - **Header Value:** un secreto que inventes
-2. En el nodo **Webhook** → Authentication → **Header Auth** → elegí esa credencial.
-3. Poné ese mismo secreto en `actualizarFotos.gs` → `AF_CONFIG.WEBHOOK_TOKEN`.
+### Las 3 credenciales a configurar
 
-Cualquier llamada sin ese header exacto recibe **403** y no entra al flujo.
+Al importar, los nodos quedan apuntando a credenciales inexistentes. Creá estas tres
+y seleccionálas en los nodos correspondientes:
 
-### Credencial de SharePoint
-Los nodos **GraphResolveSite, GraphSearchPatente, GraphListPatenteChildren,
-GraphListWebKaiFiles** usan Microsoft Graph. Al importar, en cada uno:
-- Authentication → **Predefined Credential Type**
-- Elegir la credencial **OAuth2 Microsoft Graph (n8n-sharepoint-sync)**.
-
-> Si esa credencial no aparece bajo "Microsoft OAuth2 API", volvé a seleccionarla
-> con el tipo correcto en los 4 nodos. La credencial debe tener permiso de lectura
-> sobre el sitio (p. ej. `Sites.Read.All`).
-
-### Variables de entorno (en el server de n8n)
-Los secretos **no** van en el JSON. Definí en el entorno de n8n:
-
-| Variable | Valor |
-|---|---|
-| `FTP_HOST` | `ftp.kansai.com.ar` |
-| `FTP_PORT` | `21` |
-| `FTP_USER` | `u917645178.n8nftpkansai` |
-| `FTP_PASSWORD` | (la contraseña del FTP) |
-| `FTP_DIR` | `/home/u917645178/domains/kansai.com.ar/public_html/fotos_usados` |
-| `PUBLIC_BASE_URL` | `http://www.kansai.com.ar/fotos_usados/` |
-
-### Habilitar la librería FTP en los nodos Code
-Los nodos **FtpSubir** y **FtpEliminar** usan `basic-ftp` (ya viene con n8n) y `stream`.
-En el entorno de n8n hay que permitir su `require`:
-
+**1. Header Auth** (autenticación del webhook) — nodo **Webhook**
 ```
-NODE_FUNCTION_ALLOW_EXTERNAL=basic-ftp
-NODE_FUNCTION_ALLOW_BUILTIN=stream
+Tipo:          Header Auth
+Name:          Header Auth Fotos Usados
+Header Name:   x-api-token
+Header Value:  <un secreto que inventes>
+```
+El mismo secreto va en `actualizarFotos.gs` → `AF_CONFIG.WEBHOOK_TOKEN`. Cualquier
+llamada sin ese header recibe **403** y no entra al flujo.
+
+**2. Microsoft Graph OAuth2** — nodos `GraphResolveSite`, `GraphSearchPatente`,
+`GraphListPatenteChildren`, `GraphListWebKaiFiles`
+- Authentication → **Predefined Credential Type** → la credencial
+  **OAuth2 Microsoft Graph (n8n-sharepoint-sync)**. Necesita lectura del sitio
+  (p. ej. `Sites.Read.All`).
+
+**3. FTP** — nodos `ListarPrevio`, `BorrarPrevio`, `SubirFoto`, `ListarEliminar`, `BorrarEliminar`
+```
+Tipo:      FTP
+Name:      FTP Kansai fotos_usados
+Host:      89.116.58.48      (o ftp.kansai.com.ar)
+Port:      21
+Username:  u917645178.n8nftpkansai
+Password:  <la contraseña del FTP>
 ```
 
-(Si ya tenés otros módulos permitidos, agregalos separados por coma, o usá `*`.)
-También debe estar permitido el acceso a `$env` en nodos (por defecto lo está:
-`N8N_BLOCK_ENV_ACCESS_IN_NODE=false`).
+> **Protocolo:** los nodos usan **FTP plano (puerto 21)**, que es la configuración
+> documentada de Hostinger (ver `configuracion_cliente_ftp_hostinger.md`). El nodo FTP
+> nativo de n8n **no soporta FTPS** (TLS explícito); por eso se usa FTP plano, que es
+> lo que habilita usar una credencial administrable por el usuario.
+>
+> Tu FileZilla está configurado con "FTP explícito sobre TLS". Si al probar el server
+> **rechaza FTP plano**, avisame: habría que volver a resolver el FTP con un nodo Code
+> (`basic-ftp`), con la contrapartida de que las credenciales ya no podrían salir del
+> store de n8n.
 
-> **FTPS:** el workflow conecta con TLS explícito (`secure: true`) y
-> `rejectUnauthorized: false` para tolerar certificados del hosting. Si Hostinger
-> no acepta FTPS y sí FTP plano, cambiá `secure: true` a `false` en `init.js`
-> (constante `cfg.ftp.secure`) y reimportá.
+### Sin directorio
+La cuenta `u917645178.n8nftpkansai` es una **cuenta FTP adicional restringida**, así que
+cae directo en `fotos_usados`. Por eso el campo `ftpPath` del nodo `Preparar` es `/`
+y **no se hace ningún `cd`**.
 
 ### Respuesta del webhook
 ```jsonc
@@ -101,40 +96,58 @@ También debe estar permitido el acceso a `$env` en nodos (por defecto lo está:
   "eliminados": ["AD990UD_1.jpg","AD990UD_2.jpg"], "mensaje": "Se eliminaron 2 archivo(s)..." }
 ```
 
+### Qué hace cada rama
+
+**subir:** resuelve el sitio → busca la carpeta de la patente bajo *Fotos Usados*
+(fuzzy de marca, primera coincidencia) → ubica `WebKai` → arma los nombres
+`patente_N.ext` ordenados por nombre → **lista y borra en el FTP lo que empiece con la
+patente** → descarga cada foto y la sube → devuelve el markdown.
+
+**eliminar:** lista el FTP, filtra lo que empieza con la patente, borra y confirma.
+
+> Las fotos se toman **exclusivamente** de `WebKai` (son las de tamaño adecuado). Si esa
+> carpeta no existe, responde `ok:false` y no sube nada.
+
 ---
 
 ## 2. Apps Script
 
 ### `actualizarFotos.gs` (en el libro ORIGEN "STOCK FISICO")
 Completá en `AF_CONFIG`:
-- `WEBHOOK_TOKEN` = el mismo secreto que cargaste en la credencial **Header Auth** del Webhook.
+- `WEBHOOK_TOKEN` = el mismo secreto de la credencial **Header Auth**.
 - El resto ya viene con los valores detectados: hoja `STOCK FISICO`, encabezados en
   la fila 3, columnas por nombre `DOMINIO` / `MARCA` / `FECHA DE RESERVA`, fotos en `Y`.
 
-Creá un **disparador por tiempo** (Triggers → Add Trigger → `actualizarFotos`,
-time-driven). Solo procesa filas nuevas (sin FOTOS) o bajas (con FECHA DE RESERVA),
-así cada corrida es liviana.
+Reglas por fila:
+
+| Condición | Acción |
+|---|---|
+| Tiene DOMINIO · FECHA DE RESERVA vacía · FOTOS vacía | `subir` → markdown en Y (o blanco si no hay fotos) |
+| FECHA DE RESERVA con fecha · FOTOS con contenido | `eliminar` → limpia Y |
+| FOTOS ya cargada (sin reserva) | nada (persistencia) |
+| FECHA DE RESERVA con fecha · FOTOS ya vacía | nada |
+
+Creá un **disparador por tiempo** (Triggers → Add Trigger → `actualizarFotos`).
 
 ### `sincronizarCatalogo.gs` (en el libro DESTINO del catálogo)
-Ya modificado para copiar la columna de fotos (Y del origen) al **destino en la
-columna M**. Si el catálogo necesita la columna en otro lugar, ajustá `TOTAL_COLS`
-y el orden del `push`.
+Idéntico al original salvo que ahora copia la columna de fotos (Y del origen) al
+destino en la **columna M**.
 
 ---
 
-## 3. Supuestos a verificar (cambios de 1 línea si algo difiere)
+## 3. Supuestos a verificar
 
 | Dónde | Supuesto | Dónde cambiarlo |
 |---|---|---|
 | Destino catálogo | FOTOS va en la columna **M** | `sincronizarCatalogo.gs` → `TOTAL_COLS` |
-| SharePoint | Sitio `CentroDeDocumentacion`, biblioteca por defecto | `init.js` → `cfg.siteHost/sitePath` |
-| SharePoint | Ruta base `Kansai/.../Fotos Usados` | `init.js` → `cfg.basePath` |
-| SharePoint | Carpeta de fotos se llama `WebKai` | `init.js` → `cfg.webkaiName` |
-| FTP | FTPS en puerto 21 | `init.js` → `cfg.ftp.secure` / env `FTP_PORT` |
+| FTP | FTP plano, puerto 21, raíz = `fotos_usados` | credencial FTP + `ftpPath` en `Preparar` |
+| SharePoint | Sitio `CentroDeDocumentacion`, biblioteca por defecto | nodo `Preparar` → `siteHost` / `sitePath` |
+| SharePoint | Ruta base `Kansai/.../Fotos Usados` | nodo `Preparar` → `basePath` |
+| SharePoint | Carpeta de fotos se llama `WebKai` | nodo `Preparar` → `webkaiName` |
 
-> Nota sobre la búsqueda: la carpeta de la patente se ubica con la búsqueda de Graph
-> (`search`) bajo *Fotos Usados*. Si la indexación de SharePoint estuviera demorada
-> para una carpeta recién creada, puede no encontrarla hasta que indexe.
+> La carpeta de la patente se ubica con la búsqueda de Graph (`search`) bajo *Fotos Usados*.
+> Si la indexación de SharePoint estuviera demorada para una carpeta recién creada, puede
+> no encontrarla hasta que indexe.
 
 ---
 
@@ -148,33 +161,4 @@ curl -X POST https://nodes.kansai.com.ar/webhook/fotos-usados \
 ```
 
 Conviene ejecutar el workflow **nodo por nodo** la primera vez (botón *Execute Workflow*)
-para validar credencial de Graph y conexión FTPS.
-
----
-
-## 5. Variante más nativa
-
-`n8n_webhook_fotos_usados_nativo.json` — misma lógica, pero con la preparación de
-datos, la validación y el ruteo hechos con **nodos nativos** en vez de un Code:
-
-| Parte | Implementación |
-|---|---|
-| Entrada + config + normalización | **Set** (`Preparar`) con expresiones y `$env` |
-| Autenticación (token) | **Header Auth** nativo en el nodo Webhook |
-| Validación de parámetros + ruteo | **IF** (`$json.valido`) + **Switch** por acción |
-| Descubrimiento en SharePoint | **HTTP Request** (ya era nativo) |
-| Elegir carpeta de patente | **Code** — se mantiene por el *fuzzy* de marca mal escrita |
-| Ubicar WebKai | **Code** — se mantiene por la respuesta limpia de "no encontrado" |
-| Subir / eliminar en FTP | **Code** (`basic-ftp`) — se mantiene por **FTPS** (TLS explícito) |
-
-Se conserva JavaScript **solo donde conviene**: coincidencia aproximada de marca,
-detección de WebKai y el I/O de FTPS (el nodo FTP nativo no soporta TLS explícito).
-La respuesta de validación (`Responder Validacion`) devuelve solo `{ ok, mensaje }`
-para no exponer la config.
-
-> Mismos requisitos que la versión original: credencial de Graph en los 4 nodos
-> HTTP, env vars, y `NODE_FUNCTION_ALLOW_EXTERNAL=basic-ftp`. Si tu hosting
-> ofreciera **SFTP**, los dos Code de FTP podrían reemplazarse por el **nodo FTP
-> nativo en modo SFTP** y quedaría solo 1 Code (el fuzzy).
-
-Las dos versiones son equivalentes en comportamiento; usá la que prefieras mantener.
+para validar las tres credenciales.
