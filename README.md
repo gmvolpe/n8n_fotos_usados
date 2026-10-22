@@ -57,7 +57,6 @@ Dos criterios de diseño que conviene conocer:
 ├── AGENTS.md                 Contexto del proyecto para agentes de IA
 ├── src/                      Código
 │   ├── actualizarFotos.gs            Apps Script del libro STOCK FISICO
-│   ├── sincronizarCatalogo.gs        Apps Script que arrastra la columna al catálogo
 │   └── n8n_webhook_fotos_usados.json Workflow de n8n (importable)
 └── docs/                     Documentación
     ├── instalacion.md                Instructivo de instalación paso a paso
@@ -83,7 +82,8 @@ Pendiente para dejarlo en régimen:
 
 - [ ] Activar el disparador por tiempo en Apps Script, para que corra sin intervención
 - [ ] **Rotar el token del webhook** (hoy está hardcodeado en el código y versionado en git)
-- [ ] Validar la copia del listado de fotos al catálogo publicado
+- [ ] Validar la copia del listado de fotos al catálogo publicado (ese script vive en otro
+      proyecto, fuera de este repositorio)
 
 Dos límites a tener en cuenta para la operación:
 

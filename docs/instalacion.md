@@ -190,17 +190,14 @@ es un punto de partida razonable.
 
 ---
 
-## Paso 8 — Instalar el script del catálogo
+## Paso 8 — Copia al catálogo publicado
 
-En el libro **destino** del catálogo:
+El circuito termina dejando el listado de fotos en la columna `FOTOS` de la planilla de
+stock. Llevar esa columna al catálogo publicado lo hace **otro Apps Script, que vive en
+otro proyecto** y se instala y mantiene por separado.
 
-1. **Extensiones → Apps Script**.
-2. Pegar el contenido de `src/sincronizarCatalogo.gs`.
-3. Verificar que la columna de fotos del destino sea la **M**. Si no, ajustar `TOTAL_COLS`.
-4. Crear su propio disparador por tiempo, igual que en el paso 7.
-
-Este script **no llama al webhook**: solo arrastra la columna de fotos del origen al
-catálogo destino.
+Ese script no llama al webhook: solo arrastra la columna. Para la instalación de este
+circuito no hace falta hacer nada acá.
 
 ---
 

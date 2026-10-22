@@ -10,11 +10,13 @@ STOCK FISICO (Google Sheet)
   └── actualizarFotos.gs ── POST ──► n8n webhook (nodes.kansai.com.ar)
                                        ├─ subir:    SharePoint (Graph) → descarga → FTP
                                        └─ eliminar: borra en FTP
-  └── sincronizarCatalogo.gs ──► copia la columna FOTOS (Y) al catálogo destino (col. M)
 ```
 
+La copia de la columna FOTOS al catálogo publicado la hace otro Apps Script que **vive en
+otro proyecto**, fuera de este repositorio.
+
 Las fotos quedan **persistidas en la columna Y** del libro origen, así no se re-sube
-nada al FTP en cada corrida. `sincronizarCatalogo.gs` solo **arrastra** esa columna.
+nada al FTP en cada corrida. El script del catálogo solo **arrastra** esa columna.
 
 ---
 
@@ -136,9 +138,9 @@ Reglas por fila:
 
 Creá un **disparador por tiempo** (Triggers → Add Trigger → `actualizarFotos`).
 
-### `sincronizarCatalogo.gs` (en el libro DESTINO del catálogo)
-Idéntico al original salvo que ahora copia la columna de fotos (Y del origen) al
-destino en la **columna M**.
+### Script del catálogo (en el libro DESTINO)
+Vive en **otro proyecto**, fuera de este repositorio. Copia la columna de fotos (Y del
+origen) al destino en la **columna M**.
 
 ---
 
@@ -146,7 +148,7 @@ destino en la **columna M**.
 
 | Dónde | Supuesto | Dónde cambiarlo |
 |---|---|---|
-| Destino catálogo | FOTOS va en la columna **M** | `sincronizarCatalogo.gs` → `TOTAL_COLS` |
+| Destino catálogo | FOTOS va en la columna **M** | `TOTAL_COLS`, en el proyecto del catálogo |
 | FTP | FTP plano, puerto 21, raíz = `fotos_usados` | credencial FTP + `ftpPath` en `Preparar` |
 | SharePoint | Sitio `CentroDeDocumentacion`, biblioteca por defecto | nodo `Preparar` → `siteHost` / `sitePath` |
 | SharePoint | Ruta base `Kansai/.../Fotos Usados` | nodo `Preparar` → `basePath` |

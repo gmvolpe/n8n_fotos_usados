@@ -7,16 +7,18 @@ descubrieron depurando en producción y es fácil volver a caer en ellas.
 ## Qué es este proyecto
 
 Automatiza la publicación de las fotos de autos usados de Kansai en el sitio web.
-No es una aplicación: son **tres piezas de configuración** que se instalan en servicios
-de terceros.
+No es una aplicación: son **dos piezas de configuración** que se instalan en servicios
+de terceros (un Apps Script y un workflow de n8n).
 
 ```
 Google Sheet (STOCK FISICO)
   └── actualizarFotos.gs ──POST──► n8n webhook (nodes.kansai.com.ar)
                                      ├─ subir:    SharePoint (Graph) → descarga → FTP
                                      └─ eliminar: borra en FTP
-  └── sincronizarCatalogo.gs ──► copia la columna FOTOS (Y) al catálogo destino (col. M)
 ```
+
+La copia de la columna FOTOS al catálogo publicado la hace otro Apps Script que **vive en
+otro proyecto**, fuera de este repositorio.
 
 No hay build, no hay tests automatizados, no hay dependencias que instalar. Los cambios se
 verifican **ejecutando el workflow en n8n** o la función desde el editor de Apps Script.
@@ -27,7 +29,6 @@ verifican **ejecutando el workflow en n8n** o la función desde el editor de App
 |---|---|
 | `README.md` | Explicación funcional del proyecto |
 | `src/actualizarFotos.gs` | Apps Script del libro STOCK FISICO. Decide qué publicar y qué dar de baja |
-| `src/sincronizarCatalogo.gs` | Apps Script que arrastra la columna de fotos al catálogo |
 | `src/n8n_webhook_fotos_usados.json` | Workflow de n8n completo, importable |
 | `docs/instalacion.md` | Instructivo de instalación paso a paso |
 | `docs/requerimientos.md` | Qué hace falta antes de instalar |
@@ -108,7 +109,8 @@ de más.
   en la credencial *Header Auth* de n8n y en el script. Es la razón por la que figura como
   pendiente en el README.
 - No hay disparador por tiempo activo todavía: el circuito corre cuando alguien lo dispara.
-- La copia del listado al catálogo publicado no está validada de punta a punta.
+- La copia del listado al catálogo publicado no está validada de punta a punta. Ese script
+  vive en otro proyecto, así que el cambio no se hace acá.
 
 ## Convenciones
 
