@@ -49,6 +49,14 @@ Dos criterios de diseño que conviene conocer:
 - **El nombre de la marca tolera errores de tipeo.** Si en la planilla figura una
   variante mal escrita, el proceso igual encuentra la carpeta correcta.
 
+## A mano, desde la planilla
+
+Además del automático, la planilla tiene un menú **Fotos usados** para no depender de
+esperar la próxima corrida: actualizar todo el stock, republicar o dar de baja la unidad de
+la fila donde está el cursor, y probar la conexión con n8n sin publicar nada. Todo lo que
+toca el sitio pide confirmación antes. El detalle está en
+**[docs/instalacion.md](docs/instalacion.md)**.
+
 ## Estructura del repositorio
 
 ```
@@ -57,6 +65,7 @@ Dos criterios de diseño que conviene conocer:
 ├── AGENTS.md                 Contexto del proyecto para agentes de IA
 ├── src/                      Código
 │   ├── actualizarFotos.gs            Apps Script del libro STOCK FISICO
+│   ├── n8n_PrepararArchivos.js       Código del nodo PrepararArchivos, para pegar en n8n
 │   └── n8n_webhook_fotos_usados.json Workflow de n8n (importable)
 └── docs/                     Documentación
     ├── instalacion.md                Instructivo de instalación paso a paso

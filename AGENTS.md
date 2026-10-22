@@ -29,6 +29,7 @@ verifican **ejecutando el workflow en n8n** o la función desde el editor de App
 |---|---|
 | `README.md` | Explicación funcional del proyecto |
 | `src/actualizarFotos.gs` | Apps Script del libro STOCK FISICO. Decide qué publicar y qué dar de baja |
+| `src/n8n_PrepararArchivos.js` | Copia legible del Code node `PrepararArchivos`, para pegar en n8n sin re-importar |
 | `src/n8n_webhook_fotos_usados.json` | Workflow de n8n completo, importable |
 | `docs/instalacion.md` | Instructivo de instalación paso a paso |
 | `docs/requerimientos.md` | Qué hace falta antes de instalar |

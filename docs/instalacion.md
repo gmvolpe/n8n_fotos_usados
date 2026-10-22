@@ -171,6 +171,35 @@ encabezados en la fila 3, columnas por nombre y fotos en la columna `Y` como res
    la primera vez: hay que aceptarla.
 6. Revisar el log (**Ver → Registro de ejecución**) para confirmar que la llamada responde.
 
+> El script tiene que quedar **enlazado a la planilla** (se abre con *Extensiones → Apps
+> Script* desde la propia planilla, como dice el punto 2). Si se instala como proyecto
+> independiente, el circuito corre igual por disparador, pero no aparece el menú del paso 6.1.
+
+---
+
+### Paso 6.1 — El menú "Fotos usados"
+
+Al recargar la planilla aparece un menú propio, al lado de *Ayuda*, para los casos en que
+no se quiere esperar al disparador:
+
+| Opción | Qué hace |
+|---|---|
+| **Actualizar todo el stock** | Lo mismo que el disparador, pero muestra al final cuántas publicó, cuántas dio de baja y cuántas fallaron |
+| **Republicar las fotos de la fila seleccionada** | Para la unidad de la fila donde está el cursor: borra del sitio lo que haya y vuelve a subir lo que esté hoy en `WebKai`. Es el atajo para no tener que vaciar la celda `FOTOS` a mano |
+| **Dar de baja las fotos de la fila seleccionada** | Borra del sitio las fotos de esa unidad y vacía su celda `FOTOS` |
+| **Probar la conexión con n8n** | Dice si el workflow está activo y si el token sirve. No publica ni borra nada: manda una acción inválida a propósito, que el workflow rechaza antes de tocar SharePoint o el FTP |
+
+Las tres primeras piden confirmación antes de hacer nada, porque trabajan **sobre el sitio
+de producción**. La primera vez que se usa una, Google pide autorización.
+
+Dos detalles de uso:
+
+- *Dar de baja* no reemplaza a la `FECHA DE RESERVA`: si la unidad sigue sin reserva, la
+  próxima corrida la vuelve a publicar. El aviso del diálogo lo recuerda.
+- *Actualizar todo el stock* puede chocar con el límite de 6 minutos de Apps Script si hay
+  muchas altas juntas. No rompe nada: se vuelve a elegir la opción y sigue por donde quedó,
+  porque las unidades ya publicadas no se vuelven a subir.
+
 ---
 
 ## Paso 7 — Crear el disparador por tiempo
