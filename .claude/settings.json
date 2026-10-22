@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "n8n-io": {
+      "source": {
+        "source": "github",
+        "repo": "n8n-io/skills"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "n8n-skills@n8n-io": true
+  }
+}

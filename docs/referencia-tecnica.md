@@ -20,7 +20,7 @@ nada al FTP en cada corrida. `sincronizarCatalogo.gs` solo **arrastra** esa colu
 
 ## 1. Workflow n8n
 
-Archivo: `n8n_webhook_fotos_usados.json` — importar en n8n (**Import from File**).
+Archivo: `src/n8n_webhook_fotos_usados.json` — importar en n8n (**Import from File**).
 
 **Sin variables de entorno y sin librerías externas.** Toda la configuración está
 fija dentro del nodo **`Preparar`**, y los secretos viven en **credenciales de n8n**
