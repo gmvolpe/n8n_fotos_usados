@@ -101,6 +101,19 @@ y **no se hace ningún `cd`**.
 `patente_N.ext` ordenados por nombre → **lista y borra en el FTP lo que empiece con la
 patente** → descarga cada foto y la sube → devuelve el markdown.
 
+El nombrado se decide con la constante `MODO_NOMBRE`, arriba del Code node
+`PrepararArchivos` (copia legible en [src/n8n_PrepararArchivos.js](../src/n8n_PrepararArchivos.js)):
+
+| `MODO_NOMBRE` | Nombre en el FTP |
+|---|---|
+| `'SECUENCIAL'` (default) | `AB123CD_1.jpg`, `AB123CD_2.jpg`, … |
+| `'ORIGINAL'` | `AB123CD_foto-frente.jpg` — patente + nombre original de WebKai |
+
+En `'ORIGINAL'` el nombre original se normaliza (sin tildes ni espacios) para que sirva en
+el FTP y en la URL pública, no se repite la patente si el archivo ya la traía adelante, y
+si dos nombres quedan iguales se desempatan con `-2`, `-3`. Los dos modos empiezan con la
+patente, así que la baja por prefijo sigue funcionando.
+
 **eliminar:** lista el FTP, filtra lo que empieza con la patente, borra y confirma.
 
 > Las fotos se toman **exclusivamente** de `WebKai` (son las de tamaño adecuado). Si esa

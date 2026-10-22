@@ -84,6 +84,19 @@ Consecuencia: para forzar la republicación de una unidad hay que **vaciar la ce
 el criterio de nombrado de los archivos (por ejemplo, nombrarlos por modelo en vez de por
 patente), **hay que cambiar también esta lógica** o las bajas dejan de funcionar.
 
+Por eso los dos modos de `MODO_NOMBRE` (ver trampa 9) arrancan con la patente.
+
+### 9. El nombrado se cambia en una sola constante
+
+`PrepararArchivos` tiene arriba `MODO_NOMBRE`: `'SECUENCIAL'` (patente_N.ext, el
+histórico) u `'ORIGINAL'` (patente + nombre original de WebKai). Las dos secciones de
+nombrado conviven en el nodo; no borres la que no se usa. La copia legible del código está
+en `src/n8n_PrepararArchivos.js` y debe quedar igual a la del `.json`.
+
+Ojo: cambiar el modo **no renombra lo ya publicado**. La rama `subir` borra del FTP lo que
+empiece con la patente antes de subir, así que una unidad se pasa al modo nuevo
+republicándola (vaciar la celda `FOTOS`, ver trampa 4).
+
 ### 6. El markdown de la columna FOTOS es markdown, nada más
 
 El texto alternativo de `![alt](url)` es cosmético. No cambia el nombre del archivo en el
